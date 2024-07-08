@@ -78,11 +78,15 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            width: 100%;
+            max-width: 200px;
         }
 
         .color-picker label {
             font-size: 14px;
             min-width: 70px;
+            text-align: right;
+            margin-right: 5px;
         }
 
         #show-indexes, #transparent-background {
@@ -97,6 +101,20 @@
 
         .font-size-control label {
             min-width: 120px;
+        }
+
+        .checkbox-control {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .checkbox-control input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .checkbox-control label {
+            margin-left: 0;
         }
     </style>
 </head>
@@ -154,8 +172,10 @@
             <label for="index-font-color">Index Font Color:</label>
             <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
         </div>
-        <input type="checkbox" id="show-indexes" checked onchange="drawArray()">
-        <label for="show-indexes">Show Indexes</label>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-indexes" checked onchange="drawArray()">
+            <label for="show-indexes">Show Indexes</label>
+        </div>
     </div>
     <div class="control-section">
         <div class="section-title">Export</div>
@@ -163,8 +183,10 @@
             <label for="background-color">Background Color:</label>
             <input type="color" id="background-color" value="#2a2a2a">
         </div>
-        <input type="checkbox" id="transparent-background">
-        <label for="transparent-background">Transparent Background</label>
+        <div class="checkbox-control">
+            <input type="checkbox" id="transparent-background">
+            <label for="transparent-background">Transparent Background</label>
+        </div>
         <button onclick="downloadImage()">Download Image</button>
     </div>
 </div>
