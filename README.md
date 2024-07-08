@@ -1,8 +1,7 @@
 # Interactive Visualizers
 
 This repository contains a collection of interactive visualizers built with HTML, CSS, and JavaScript.
-These tools are designed to help developers and students better understand array operations and manipulations through
-visual representation.
+These tools are designed to help developers and students visualize various data structures.
 
 ## Array Visualizer Features
 

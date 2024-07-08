@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Refined Dark Mode Custom Color Interactive Array Visualizer</title>
+    <title>Multi-Array Interactive Visualizer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         body {
@@ -119,9 +119,33 @@
         .checkbox-control label {
             margin-left: 0;
         }
+
+        #array-list {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .array-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #3a3a3a;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+
+        .array-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .array-item button {
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
+<div id="array-list"></div>
 <div id="array-container">
     <svg></svg>
 </div>
@@ -130,14 +154,16 @@
         <div class="section-title">Array Input</div>
         <label for="array-input"></label><input type="text" id="array-input"
                                                 placeholder="Enter array (comma-separated)">
-        <button onclick="updateArray()">Update Array</button>
-        <button onclick="resetToDefaultArray()">Reset Array</button>
+        <button onclick="addArray()">Add Array</button>
     </div>
     <div class="control-section">
         <div class="section-title">Array Operations</div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-indexes" checked onchange="drawArrays()">
+            <label for="show-indexes">Show Indexes</label>
+        </div>
         <label for="split-index"></label><input type="number" id="split-index" placeholder="Split index" min="0">
-        <button onclick="splitArray()">Split Array</button>
-        <button onclick="resetArray()">Reset</button>
+        <button onclick="splitArrays()">Split Arrays</button>
     </div>
     <div class="control-section">
         <div class="section-title">Color Settings</div>
@@ -176,10 +202,11 @@
             <label for="index-font-color">Index Font Color:</label>
             <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
         </div>
-        <div class="checkbox-control">
-            <input type="checkbox" id="show-indexes" checked onchange="drawArray()">
-            <label for="show-indexes">Show Indexes</label>
-        </div>
+    </div>
+    <div class="control-section">
+        <div class="section-title">Reset Settings</div>
+        <button onclick="resetArraySettings()">Reset Arrays</button>
+        <button onclick="resetFontSettings()">Reset Font Settings</button>
     </div>
     <div class="control-section">
         <div class="section-title">Export</div>
@@ -216,21 +243,22 @@
     const ELEMENT_SIZE = 80;
     const ELEMENT_MARGIN = 2;
     const INDEX_HEIGHT = 35;
+    const ARRAY_VERTICAL_MARGIN = 20;
     const margin = {top: 20, right: 20, bottom: 20, left: 20};
 
-    const defaultArray = [1, 2, 3, 4, 5];
-    let arr = [...defaultArray];
+    let arrays = [];
+    let elementColors = [];
 
     const svg = d3.select("svg");
 
     let colors = {...defaultColors};
     let fontColors = {...defaultFontColors};
-    let elementColors = new Array(arr.length).fill(colors.base);
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
-        const totalWidth = arr.length * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
-        const totalHeight = ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + margin.top + margin.bottom;
+        const maxArrayLength = Math.max(...arrays.map(arr => arr.length));
+        const totalWidth = maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
+        const totalHeight = arrays.length * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN) + margin.top + margin.bottom;
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -241,96 +269,120 @@
         return {totalWidth, totalHeight};
     }
 
-    function drawArray() {
+    function drawArrays() {
         svg.selectAll("*").remove();
 
         updateSVGSize();
         const showIndexes = document.getElementById("show-indexes").checked;
 
-        const elements = svg.append("g")
-            .attr("transform", `translate(${margin.left}, ${margin.top})`)
-            .selectAll("g")
-            .data(arr)
-            .enter()
-            .append("g")
-            .attr("transform", (d, i) => `translate(${i * (ELEMENT_SIZE + ELEMENT_MARGIN)}, 0)`);
+        arrays.forEach((arr, arrayIndex) => {
+            const arrayGroup = svg.append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top + arrayIndex * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN)})`);
 
-        elements.append("rect")
-            .attr("class", "array-element")
-            .attr("width", ELEMENT_SIZE)
-            .attr("height", ELEMENT_SIZE)
-            .attr("fill", (d, i) => elementColors[i])
-            .on("click", function (event, d) {
-                const i = arr.indexOf(d);
-                const currentColor = d3.select(this).attr("fill");
-                const newColor = currentColor === colors.highlight ? colors.base : colors.highlight;
-                d3.select(this).attr("fill", newColor);
-                elementColors[i] = newColor;
-            });
+            const elements = arrayGroup.selectAll("g")
+                .data(arr)
+                .enter()
+                .append("g")
+                .attr("transform", (d, i) => `translate(${i * (ELEMENT_SIZE + ELEMENT_MARGIN)}, 0)`);
 
-        elements.append("text")
-            .attr("class", "array-text")
-            .attr("x", ELEMENT_SIZE / 2)
-            .attr("y", ELEMENT_SIZE / 2 + 4)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
-            .text(d => d)
-            .attr("fill", fontColors.element);
+            elements.append("rect")
+                .attr("class", "array-element")
+                .attr("width", ELEMENT_SIZE)
+                .attr("height", ELEMENT_SIZE)
+                .attr("fill", (d, i) => elementColors[arrayIndex][i])
+                .on("click", function (event, d) {
+                    const i = arr.indexOf(d);
+                    const currentColor = d3.select(this).attr("fill");
+                    const newColor = currentColor === colors.highlight ? colors.base : colors.highlight;
+                    d3.select(this).attr("fill", newColor);
+                    elementColors[arrayIndex][i] = newColor;
+                });
 
-        if (showIndexes) {
             elements.append("text")
-                .attr("class", "index-text")
+                .attr("class", "array-text")
                 .attr("x", ELEMENT_SIZE / 2)
-                .attr("y", ELEMENT_SIZE + INDEX_HEIGHT / 2)
+                .attr("y", ELEMENT_SIZE / 2 + 4)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
-                .text((d, i) => i)
-                .attr("fill", fontColors.index);
-        }
+                .text(d => d)
+                .attr("fill", fontColors.element);
+
+            if (showIndexes) {
+                elements.append("text")
+                    .attr("class", "index-text")
+                    .attr("x", ELEMENT_SIZE / 2)
+                    .attr("y", ELEMENT_SIZE + INDEX_HEIGHT / 2)
+                    .attr("text-anchor", "middle")
+                    .attr("dominant-baseline", "middle")
+                    .text((d, i) => i)
+                    .attr("fill", fontColors.index);
+            }
+        });
 
         changeFontSize();
     }
 
-    function updateArray() {
+    function addArray() {
         const input = document.getElementById("array-input").value;
-        arr = input.split(",").map(item => parseInt(item.trim()));
-        elementColors = new Array(arr.length).fill(colors.base);
-        drawArray();
+        const newArray = input.split(",").map(item => parseInt(item.trim()));
+        arrays.push(newArray);
+        elementColors.push(new Array(newArray.length).fill(colors.base));
+        updateArrayList();
+        drawArrays();
+        document.getElementById("array-input").value = "";
     }
 
-    function resetToDefaultArray() {
-        arr = [...defaultArray];
-        elementColors = new Array(arr.length).fill(colors.base);
-        document.getElementById("array-input").value = arr.join(", ");
-        drawArray();
+    function updateArrayList() {
+        const arrayList = document.getElementById("array-list");
+        arrayList.innerHTML = "";
+        arrays.forEach((arr, index) => {
+            const arrayItem = document.createElement("div");
+            arrayItem.className = "array-item";
+            arrayItem.innerHTML = `
+                <input type="checkbox" id="array-${index}" checked>
+                <span>${arr.join(", ")}</span>
+                <button onclick="editArray(${index})">Edit</button>
+                <button onclick="removeArray(${index})">Remove</button>
+            `;
+            arrayList.appendChild(arrayItem);
+        });
     }
 
-    function splitArray() {
+    function editArray(index) {
+        const newArrayString = prompt("Edit array (comma-separated):", arrays[index].join(", "));
+        if (newArrayString !== null) {
+            arrays[index] = newArrayString.split(",").map(item => parseInt(item.trim()));
+            elementColors[index] = new Array(arrays[index].length).fill(colors.base);
+            updateArrayList();
+            drawArrays();
+        }
+    }
+
+    function removeArray(index) {
+        arrays.splice(index, 1);
+        elementColors.splice(index, 1);
+        updateArrayList();
+        drawArrays();
+    }
+
+    function splitArrays() {
         const splitIndex = parseInt(document.getElementById("split-index").value);
-        if (isNaN(splitIndex) || splitIndex < 0 || splitIndex >= arr.length) {
+        if (isNaN(splitIndex) || splitIndex < 0) {
             alert("Please enter a valid split index");
             return;
         }
-        elementColors = elementColors.map((color, i) => i < splitIndex ? colors.split1 : colors.split2);
-        drawArray();
+        const selectedArrays = getSelectedArrays();
+        selectedArrays.forEach(index => {
+            if (splitIndex < arrays[index].length) {
+                elementColors[index] = elementColors[index].map((color, i) => i < splitIndex ? colors.split1 : colors.split2);
+            }
+        });
+        drawArrays();
     }
 
-    function resetArray() {
-        colors = {...defaultColors};
-        document.getElementById("base-color").value = colors.base;
-        document.getElementById("highlight-color").value = colors.highlight;
-        document.getElementById("split1-color").value = colors.split1;
-        document.getElementById("split2-color").value = colors.split2;
-
-        document.getElementById("element-font-size").value = defaultFontSizes.element;
-        document.getElementById("index-font-size").value = defaultFontSizes.index;
-
-        fontColors = {...defaultFontColors};
-        document.getElementById("element-font-color").value = fontColors.element;
-        document.getElementById("index-font-color").value = fontColors.index;
-
-        elementColors = new Array(arr.length).fill(colors.base);
-        drawArray();
+    function getSelectedArrays() {
+        return Array.from(document.querySelectorAll("#array-list input[type='checkbox']:checked"))
+            .map(checkbox => parseInt(checkbox.id.split("-")[1]));
     }
 
     function updateColors() {
@@ -338,10 +390,12 @@
         colors.highlight = document.getElementById("highlight-color").value;
         colors.split1 = document.getElementById("split1-color").value;
         colors.split2 = document.getElementById("split2-color").value;
-        elementColors = elementColors.map(color =>
-            color === defaultColors.highlight ? colors.highlight : colors.base
+        elementColors = elementColors.map(arrayColors =>
+            arrayColors.map(color =>
+                color === defaultColors.highlight ? colors.highlight : colors.base
+            )
         );
-        drawArray();
+        drawArrays();
     }
 
     function updateFontColors() {
@@ -360,6 +414,23 @@
             .style("font-size", `${elementFontSize}px`);
         svg.selectAll(".index-text")
             .style("font-size", `${indexFontSize}px`);
+    }
+
+    function resetFontSettings() {
+        document.getElementById("element-font-size").value = defaultFontSizes.element;
+        document.getElementById("index-font-size").value = defaultFontSizes.index;
+        document.getElementById("element-font-color").value = defaultFontColors.element;
+        document.getElementById("index-font-color").value = defaultFontColors.index;
+        changeFontSize();
+        updateFontColors();
+    }
+
+    function resetArraySettings() {
+        document.getElementById("base-color").value = defaultColors.base;
+        document.getElementById("highlight-color").value = defaultColors.highlight;
+        document.getElementById("split1-color").value = defaultColors.split1;
+        document.getElementById("split2-color").value = defaultColors.split2;
+        updateColors();
     }
 
     function downloadImage() {
@@ -390,7 +461,7 @@
             const pngUrl = canvas.toDataURL("image/png");
             const downloadLink = document.createElement("a");
             downloadLink.href = pngUrl;
-            downloadLink.download = "array_visualization.png";
+            downloadLink.download = "multi_array_visualization.png";
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
@@ -399,9 +470,11 @@
     }
 
     // Update the event listener for the "Show Indexes" checkbox
-    document.getElementById("show-indexes").addEventListener("change", drawArray);
+    document.getElementById("show-indexes").addEventListener("change", drawArrays);
 
-    drawArray();
+    // Initialize the visualization
+    updateArrayList();
+    drawArrays();
 </script>
 </body>
 </html>
