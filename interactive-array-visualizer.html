@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Dark Mode Custom Color Interactive Array Visualizer</title>
+    <title>Refined Dark Mode Custom Color Interactive Array Visualizer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         body {
@@ -85,7 +85,7 @@
             min-width: 70px;
         }
 
-        #show-indexes {
+        #show-indexes, #transparent-background {
             margin-right: 10px;
         }
 
@@ -102,7 +102,7 @@
 </head>
 <body>
 <div id="array-container">
-    <svg width="600" height="150"></svg>
+    <svg></svg>
 </div>
 <div class="controls">
     <div class="control-section">
@@ -161,8 +161,10 @@
         <div class="section-title">Export</div>
         <div class="color-picker">
             <label for="background-color">Background Color:</label>
-            <input type="color" id="background-color" value="#ffffff">
+            <input type="color" id="background-color" value="#2a2a2a">
         </div>
+        <input type="checkbox" id="transparent-background">
+        <label for="transparent-background">Transparent Background</label>
         <button onclick="downloadImage()">Download Image</button>
     </div>
 </div>
@@ -186,11 +188,16 @@
     };
 
     let arr = [1, 1, 1, 2, 3, 4];
-    const width = 600;
-    const height = 150;
+    const margin = {top: 20, right: 20, bottom: 20, left: 20};
+    const width = 600 - margin.left - margin.right;
+    const height = 150 - margin.top - margin.bottom;
     let elementWidth = width / arr.length;
 
-    const svg = d3.select("svg");
+    const svg = d3.select("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
     let colors = {...defaultColors};
     let fontColors = {...defaultFontColors};
@@ -199,6 +206,8 @@
         svg.selectAll("*").remove();
 
         elementWidth = width / arr.length;
+        const showIndexes = document.getElementById("show-indexes").checked;
+        const elementHeight = showIndexes ? height - 30 : height;
 
         const elements = svg.selectAll("g")
             .data(arr)
@@ -209,7 +218,7 @@
         elements.append("rect")
             .attr("class", "array-element")
             .attr("width", elementWidth - 2)
-            .attr("height", height - 52)
+            .attr("height", elementHeight)
             .attr("fill", colors.base)
             .on("click", function () {
                 const currentColor = d3.select(this).attr("fill");
@@ -221,17 +230,17 @@
         elements.append("text")
             .attr("class", "array-text")
             .attr("x", elementWidth / 2)
-            .attr("y", (height - 52) / 2)
+            .attr("y", elementHeight / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .text(d => d)
             .attr("fill", fontColors.element);
 
-        if (document.getElementById("show-indexes").checked) {
+        if (showIndexes) {
             elements.append("text")
                 .attr("class", "index-text")
                 .attr("x", elementWidth / 2)
-                .attr("y", height - 35)
+                .attr("y", height - 5)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .text((d, i) => i)
@@ -302,7 +311,7 @@
     }
 
     function downloadImage() {
-        const svgNode = svg.node();
+        const svgNode = svg.node().parentNode;
         const svgWidth = svgNode.width.baseVal.value;
         const svgHeight = svgNode.height.baseVal.value;
 
@@ -311,8 +320,11 @@
         canvas.height = svgHeight;
         const ctx = canvas.getContext("2d");
 
-        ctx.fillStyle = document.getElementById("background-color").value;
-        ctx.fillRect(0, 0, svgWidth, svgHeight);
+        const transparentBackground = document.getElementById("transparent-background").checked;
+        if (!transparentBackground) {
+            ctx.fillStyle = document.getElementById("background-color").value;
+            ctx.fillRect(0, 0, svgWidth, svgHeight);
+        }
 
         const img = new Image();
         const svgData = new XMLSerializer().serializeToString(svgNode);
