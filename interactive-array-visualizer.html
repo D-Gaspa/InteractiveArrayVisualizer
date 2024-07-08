@@ -88,11 +88,13 @@
         #show-indexes {
             margin-right: 10px;
         }
+
         .font-size-control {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .font-size-control label {
             min-width: 120px;
         }
@@ -154,6 +156,18 @@
 </div>
 
 <script>
+    const defaultColors = {
+        base: "#E3F9F9",
+        highlight: "#1AD1B2",
+        split1: "#1AD1B2",
+        split2: "#91C0BF"
+    };
+
+    const defaultFontSizes = {
+        element: 18,
+        index: 14
+    };
+
     let arr = [1, 1, 1, 2, 3, 4];
     const width = 600;
     const height = 150;
@@ -161,12 +175,7 @@
 
     const svg = d3.select("svg");
 
-    let colors = {
-        base: "#E3F9F9",
-        highlight: "#1AD1B2",
-        split1: "#1AD1B2",
-        split2: "#91C0BF"
-    };
+    let colors = {...defaultColors};
 
     function drawArray() {
         svg.selectAll("*").remove();
@@ -231,8 +240,19 @@
     }
 
     function resetArray() {
+        colors = {...defaultColors};
+        document.getElementById("base-color").value = colors.base;
+        document.getElementById("highlight-color").value = colors.highlight;
+        document.getElementById("split1-color").value = colors.split1;
+        document.getElementById("split2-color").value = colors.split2;
+
+        document.getElementById("element-font-size").value = defaultFontSizes.element;
+        document.getElementById("index-font-size").value = defaultFontSizes.index;
+
         svg.selectAll("rect")
             .attr("fill", colors.base);
+
+        changeFontSize();
     }
 
     function updateColors() {
@@ -240,17 +260,18 @@
         colors.highlight = document.getElementById("highlight-color").value;
         colors.split1 = document.getElementById("split1-color").value;
         colors.split2 = document.getElementById("split2-color").value;
-        resetArray();
+        svg.selectAll("rect")
+            .attr("fill", colors.base);
     }
 
     function changeFontSize() {
-            const elementFontSize = document.getElementById("element-font-size").value;
-            const indexFontSize = document.getElementById("index-font-size").value;
-            svg.selectAll(".array-text")
-                .style("font-size", `${elementFontSize}px`);
-            svg.selectAll(".index-text")
-                .style("font-size", `${indexFontSize}px`);
-        }
+        const elementFontSize = document.getElementById("element-font-size").value;
+        const indexFontSize = document.getElementById("index-font-size").value;
+        svg.selectAll(".array-text")
+            .style("font-size", `${elementFontSize}px`);
+        svg.selectAll(".index-text")
+            .style("font-size", `${indexFontSize}px`);
+    }
 
     function downloadImage() {
         const svgNode = svg.node();
