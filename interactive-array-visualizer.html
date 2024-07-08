@@ -131,6 +131,7 @@
         <label for="array-input"></label><input type="text" id="array-input"
                                                 placeholder="Enter array (comma-separated)">
         <button onclick="updateArray()">Update Array</button>
+        <button onclick="resetToDefaultArray()">Reset Array</button>
     </div>
     <div class="control-section">
         <div class="section-title">Array Operations</div>
@@ -217,12 +218,14 @@
     const INDEX_HEIGHT = 35;
     const margin = {top: 20, right: 20, bottom: 20, left: 20};
 
-    let arr = [1, 1, 1, 2, 3, 4];
+    const defaultArray = [1, 2, 3, 4, 5];
+    let arr = [...defaultArray];
 
     const svg = d3.select("svg");
 
     let colors = {...defaultColors};
     let fontColors = {...defaultFontColors};
+    let elementColors = new Array(arr.length).fill(colors.base);
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
@@ -256,12 +259,13 @@
             .attr("class", "array-element")
             .attr("width", ELEMENT_SIZE)
             .attr("height", ELEMENT_SIZE)
-            .attr("fill", colors.base)
-            .on("click", function () {
+            .attr("fill", (d, i) => elementColors[i])
+            .on("click", function (event, d) {
+                const i = arr.indexOf(d);
                 const currentColor = d3.select(this).attr("fill");
-                d3.select(this).attr("fill",
-                    currentColor === colors.highlight ? colors.base : colors.highlight
-                );
+                const newColor = currentColor === colors.highlight ? colors.base : colors.highlight;
+                d3.select(this).attr("fill", newColor);
+                elementColors[i] = newColor;
             });
 
         elements.append("text")
@@ -290,6 +294,14 @@
     function updateArray() {
         const input = document.getElementById("array-input").value;
         arr = input.split(",").map(item => parseInt(item.trim()));
+        elementColors = new Array(arr.length).fill(colors.base);
+        drawArray();
+    }
+
+    function resetToDefaultArray() {
+        arr = [...defaultArray];
+        elementColors = new Array(arr.length).fill(colors.base);
+        document.getElementById("array-input").value = arr.join(", ");
         drawArray();
     }
 
@@ -299,8 +311,8 @@
             alert("Please enter a valid split index");
             return;
         }
-        svg.selectAll("rect")
-            .attr("fill", (d, i) => i < splitIndex ? colors.split1 : colors.split2);
+        elementColors = elementColors.map((color, i) => i < splitIndex ? colors.split1 : colors.split2);
+        drawArray();
     }
 
     function resetArray() {
@@ -317,6 +329,7 @@
         document.getElementById("element-font-color").value = fontColors.element;
         document.getElementById("index-font-color").value = fontColors.index;
 
+        elementColors = new Array(arr.length).fill(colors.base);
         drawArray();
     }
 
@@ -325,8 +338,10 @@
         colors.highlight = document.getElementById("highlight-color").value;
         colors.split1 = document.getElementById("split1-color").value;
         colors.split2 = document.getElementById("split2-color").value;
-        svg.selectAll("rect")
-            .attr("fill", colors.base);
+        elementColors = elementColors.map(color =>
+            color === defaultColors.highlight ? colors.highlight : colors.base
+        );
+        drawArray();
     }
 
     function updateFontColors() {
@@ -382,6 +397,9 @@
         };
         img.src = url;
     }
+
+    // Update the event listener for the "Show Indexes" checkbox
+    document.getElementById("show-indexes").addEventListener("change", drawArray);
 
     drawArray();
 </script>
