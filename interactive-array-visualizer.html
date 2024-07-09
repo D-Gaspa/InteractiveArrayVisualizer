@@ -167,6 +167,9 @@
         <button onclick="addArray()">Add Array</button>
         <div class="section-title">Array List</div>
         <div id="array-list"></div>
+        <div style="display: none;">
+            <div class="array-item"></div>
+        </div>
     </div>
     <div class="control-section">
         <div class="section-title">Array Operations</div>
@@ -272,7 +275,7 @@
         const showIndexes = document.getElementById("show-indexes").checked;
         const maxArrayLength = Math.max(...arrays.map(arr => arr.length));
         const totalWidth = maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
-        const totalHeight = arrays.length * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN) + margin.top + margin.bottom;
+        const totalHeight = arrays.length * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN) + margin.top;
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
