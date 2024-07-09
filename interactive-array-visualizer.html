@@ -68,6 +68,7 @@
             background-color: #3a3a3a;
             color: #e0e0e0;
             border: 1px solid #5a5a5a;
+            width: 195px;
         }
 
         input[type="color"] {
@@ -142,10 +143,19 @@
         .array-item button {
             margin-left: 10px;
         }
+
+        .array-edit {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .array-edit input {
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
-<div id="array-list"></div>
 <div id="array-container">
     <svg></svg>
 </div>
@@ -155,6 +165,8 @@
         <label for="array-input"></label><input type="text" id="array-input"
                                                 placeholder="Enter array (comma-separated)">
         <button onclick="addArray()">Add Array</button>
+        <div class="section-title">Array List</div>
+        <div id="array-list"></div>
     </div>
     <div class="control-section">
         <div class="section-title">Array Operations</div>
@@ -162,8 +174,10 @@
             <input type="checkbox" id="show-indexes" checked onchange="drawArrays()">
             <label for="show-indexes">Show Indexes</label>
         </div>
-        <label for="split-index"></label><input type="number" id="split-index" placeholder="Split index" min="0">
-        <button onclick="splitArrays()">Split Arrays</button>
+        <div class="array-edit">
+            <label for="split-index"></label><input type="number" id="split-index" placeholder="Split index" min="0">
+            <button onclick="splitArrays()">Split Arrays</button>
+        </div>
     </div>
     <div class="control-section">
         <div class="section-title">Color Settings</div>
@@ -205,7 +219,7 @@
     </div>
     <div class="control-section">
         <div class="section-title">Reset Settings</div>
-        <button onclick="resetArraySettings()">Reset Arrays</button>
+        <button onclick="resetArraySettings()">Reset Array Settings</button>
         <button onclick="resetFontSettings()">Reset Font Settings</button>
     </div>
     <div class="control-section">
@@ -246,8 +260,8 @@
     const ARRAY_VERTICAL_MARGIN = 20;
     const margin = {top: 20, right: 20, bottom: 20, left: 20};
 
-    let arrays = [];
-    let elementColors = [];
+    let arrays = [[1, 2, 3, 4, 5]];  // Default array
+    let elementColors = [new Array(5).fill(defaultColors.base)];  // Colors for default array
 
     const svg = d3.select("svg");
 
@@ -339,30 +353,37 @@
             const arrayItem = document.createElement("div");
             arrayItem.className = "array-item";
             arrayItem.innerHTML = `
-                <input type="checkbox" id="array-${index}" checked>
-                <span>${arr.join(", ")}</span>
-                <button onclick="editArray(${index})">Edit</button>
-                <button onclick="removeArray(${index})">Remove</button>
+                <div class="checkbox-control">
+                    <input type="checkbox" id="array-${index}" checked>
+                    <span>${arr.join(", ")}</span>
+                </div>
+                <div class="array-edit">
+                    <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)">
+                    <button onclick="editArray(${index})">Edit</button>
+                    <button onclick="removeArray(${index})">Remove</button>
+                </div>
             `;
             arrayList.appendChild(arrayItem);
         });
     }
 
     function editArray(index) {
-        const newArrayString = prompt("Edit array (comma-separated):", arrays[index].join(", "));
-        if (newArrayString !== null) {
-            arrays[index] = newArrayString.split(",").map(item => parseInt(item.trim()));
-            elementColors[index] = new Array(arrays[index].length).fill(colors.base);
-            updateArrayList();
-            drawArrays();
-        }
+        const newArrayString = document.getElementById(`edit-array-${index}`).value;
+        arrays[index] = newArrayString.split(",").map(item => parseInt(item.trim()));
+        elementColors[index] = new Array(arrays[index].length).fill(colors.base);
+        updateArrayList();
+        drawArrays();
     }
 
     function removeArray(index) {
-        arrays.splice(index, 1);
-        elementColors.splice(index, 1);
-        updateArrayList();
-        drawArrays();
+        if (arrays.length > 1) {
+            arrays.splice(index, 1);
+            elementColors.splice(index, 1);
+            updateArrayList();
+            drawArrays();
+        } else {
+            alert("Cannot remove the last array. At least one array must remain.");
+        }
     }
 
     function splitArrays() {
