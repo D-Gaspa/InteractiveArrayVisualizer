@@ -125,7 +125,6 @@
         .array-name {
             font-family: monospace;
             font-size: 14px;
-            fill: #e0e0e0;
         }
 
         .array-name-input {
@@ -231,7 +230,7 @@
             <input type="color" id="element-font-color" value="#1a1a1a" onchange="updateFontColors()">
         </div>
         <div class="color-picker">
-            <label for="index-font-color">Index Font Color:</label>
+            <label for="index-font-color">Index and Name Font Color:</label>
             <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
         </div>
     </div>
@@ -251,6 +250,10 @@
             <label for="transparent-background">Transparent Background</label>
         </div>
         <button onclick="downloadImage()">Download Image</button>
+    </div>
+    <div class="control-section">
+        <div class="section-title">State Management</div>
+        <button onclick="resetToDefault()">Reset to Default</button>
     </div>
 </div>
 
@@ -320,7 +323,11 @@
                     .attr("class", "array-name")
                     .attr("x", 0)
                     .attr("y", -5)
-                    .text(arrayNames[arrayIndex] || `Array ${arrayIndex + 1}`);
+                    .text(arrayNames[arrayIndex] || `Array ${arrayIndex + 1}`)
+                    .attr("fill", fontColors.index)  // Use the same color as indexes
+                    .style("font-family", "monospace")
+                    .style("font-size", "14px")
+                    .style("shape-rendering", "crispEdges");
             }
 
             const elements = arrayGroup.selectAll("g")
@@ -345,6 +352,7 @@
                         state.highlightedIndices.add(d.index);
                         d3.select(this).attr("fill", colors.highlight);
                     }
+                    saveState();
                 });
 
             elements.append("text")
@@ -373,6 +381,74 @@
         });
 
         changeFontSize();
+    }
+
+    // Load state from local storage or use default values
+    function loadState() {
+        const savedState = localStorage.getItem('arrayVisualizerState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            arrayStates = state.arrayStates.map(arr => ({
+                elements: arr.elements,
+                highlightedIndices: new Set(arr.highlightedIndices)
+            }));
+            arrayNames = state.arrayNames;
+            colors = state.colors;
+            fontColors = state.fontColors;
+            document.getElementById("base-color").value = colors.base;
+            document.getElementById("highlight-color").value = colors.highlight;
+            document.getElementById("split1-color").value = colors.split1;
+            document.getElementById("split2-color").value = colors.split2;
+            document.getElementById("element-font-color").value = fontColors.element;
+            document.getElementById("index-font-color").value = fontColors.index;
+            document.getElementById("element-font-size").value = state.fontSizes.element;
+            document.getElementById("index-font-size").value = state.fontSizes.index;
+            document.getElementById("show-indexes").checked = state.showIndexes;
+            document.getElementById("show-names").checked = state.showNames;
+        }
+    }
+
+    // Save current state to local storage
+    function saveState() {
+        const state = {
+            arrayStates: arrayStates.map(arr => ({
+                elements: arr.elements,
+                highlightedIndices: Array.from(arr.highlightedIndices)
+            })),
+            arrayNames,
+            colors,
+            fontColors,
+            fontSizes: {
+                element: document.getElementById("element-font-size").value,
+                index: document.getElementById("index-font-size").value
+            },
+            showIndexes: document.getElementById("show-indexes").checked,
+            showNames: document.getElementById("show-names").checked
+        };
+        localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
+    }
+
+    // Reset to default state
+    function resetToDefault() {
+        arrayStates = [{
+            elements: [1, 2, 3, 4, 5],
+            highlightedIndices: new Set()
+        }];
+        arrayNames = ["Array 1"];
+        colors = {...defaultColors};
+        fontColors = {...defaultFontColors};
+        document.getElementById("base-color").value = defaultColors.base;
+        document.getElementById("highlight-color").value = defaultColors.highlight;
+        document.getElementById("split1-color").value = defaultColors.split1;
+        document.getElementById("split2-color").value = defaultColors.split2;
+        document.getElementById("element-font-color").value = defaultFontColors.element;
+        document.getElementById("index-font-color").value = defaultFontColors.index;
+        document.getElementById("element-font-size").value = defaultFontSizes.element;
+        document.getElementById("index-font-size").value = defaultFontSizes.index;
+        document.getElementById("show-indexes").checked = true;
+        document.getElementById("show-names").checked = true;
+        updateArrayList();
+        drawArrays();
     }
 
     function addArray() {
@@ -437,6 +513,7 @@
         } else {
             alert("Cannot remove the last array. At least one array must remain.");
         }
+        saveState();
     }
 
     function splitArrays() {
@@ -478,8 +555,9 @@
         fontColors.index = document.getElementById("index-font-color").value;
         svg.selectAll(".array-text")
             .attr("fill", fontColors.element);
-        svg.selectAll(".index-text")
+        svg.selectAll(".index-text, .array-name")  // Apply to both index and array name
             .attr("fill", fontColors.index);
+        saveState();
     }
 
     function changeFontSize() {
@@ -489,6 +567,7 @@
             .style("font-size", `${elementFontSize}px`);
         svg.selectAll(".index-text")
             .style("font-size", `${indexFontSize}px`);
+        saveState();
     }
 
     function resetFontSettings() {
@@ -562,9 +641,12 @@
     // Update the event listener for the "Show Indexes" checkbox
     document.getElementById("show-indexes").addEventListener("change", drawArrays);
 
-    // Initialize the visualization
-    updateArrayList();
-    drawArrays();
+    // Load state when the page loads
+    window.onload = function () {
+        loadState();
+        updateArrayList();
+        drawArrays();
+    };
 </script>
 </body>
 </html>
