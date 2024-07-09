@@ -93,10 +93,6 @@
             margin-right: 5px;
         }
 
-        #show-indexes, #transparent-background {
-            margin-right: 10px;
-        }
-
         .font-size-control {
             display: flex;
             align-items: center;
@@ -118,12 +114,23 @@
         }
 
         .checkbox-control label {
-            margin-left: 0;
+            margin-left: 5px;
         }
 
         #array-list {
             width: 100%;
             margin-bottom: 20px;
+        }
+
+        .array-name {
+            font-family: monospace;
+            font-size: 14px;
+            fill: #e0e0e0;
+        }
+
+        .array-name-input {
+            width: 150px;
+            margin-right: 10px;
         }
 
         .array-item {
@@ -172,11 +179,18 @@
         </div>
     </div>
     <div class="control-section">
-        <div class="section-title">Array Operations</div>
+        <div class="section-title">Display Options</div>
         <div class="checkbox-control">
             <input type="checkbox" id="show-indexes" checked onchange="drawArrays()">
             <label for="show-indexes">Show Indexes</label>
         </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-names" checked onchange="drawArrays()">
+            <label for="show-names">Show Array Names</label>
+        </div>
+    </div>
+    <div class="control-section">
+        <div class="section-title">Array Operations</div>
         <div class="array-edit">
             <label for="split-index"></label><input type="number" id="split-index" placeholder="Split index" min="0">
             <button onclick="splitArrays()">Split Arrays</button>
@@ -270,6 +284,7 @@
 
     let colors = {...defaultColors};
     let fontColors = {...defaultFontColors};
+    let arrayNames = ["Array 1"];
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
@@ -291,10 +306,19 @@
 
         updateSVGSize();
         const showIndexes = document.getElementById("show-indexes").checked;
+        const showNames = document.getElementById("show-names").checked;
 
         arrays.forEach((arr, arrayIndex) => {
             const arrayGroup = svg.append("g")
-                .attr("transform", `translate(${margin.left}, ${margin.top + arrayIndex * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN)})`);
+                .attr("transform", `translate(${margin.left}, ${margin.top + arrayIndex * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN + (showNames ? 20 : 0))})`);
+
+            if (showNames) {
+                arrayGroup.append("text")
+                    .attr("class", "array-name")
+                    .attr("x", 0)
+                    .attr("y", -5)
+                    .text(arrayNames[arrayIndex] || `Array ${arrayIndex + 1}`);
+            }
 
             const elements = arrayGroup.selectAll("g")
                 .data(arr)
@@ -348,6 +372,7 @@
         const newArray = input.split(",").map(item => parseInt(item.trim()));
         arrays.push(newArray);
         elementColors.push(new Array(newArray.length).fill(colors.base));
+        arrayNames.push(`Array ${arrays.length}`);  // Add a default name
         updateArrayList();
         drawArrays();
         document.getElementById("array-input").value = "";
@@ -362,6 +387,7 @@
             arrayItem.innerHTML = `
                 <div class="checkbox-control">
                     <input type="checkbox" id="array-${index}" checked>
+                    <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
                     <span>${arr.join(", ")}</span>
                 </div>
                 <div class="array-edit">
@@ -372,6 +398,11 @@
             `;
             arrayList.appendChild(arrayItem);
         });
+    }
+
+    function updateArrayName(index, newName) {
+        arrayNames[index] = newName;
+        drawArrays();
     }
 
     function editArray(index) {
@@ -386,6 +417,7 @@
         if (arrays.length > 1) {
             arrays.splice(index, 1);
             elementColors.splice(index, 1);
+            arrayNames.splice(index, 1);
             updateArrayList();
             drawArrays();
         } else {
