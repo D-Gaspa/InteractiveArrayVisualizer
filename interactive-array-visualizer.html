@@ -294,9 +294,12 @@
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
+        const showNames = document.getElementById("show-names").checked;
+        const numArrays = arrayStates.length;
         const maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
         const totalWidth = maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
-        const totalHeight = arrayStates.length * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN) + margin.top;
+        const totalHeight = numArrays * (ELEMENT_SIZE + ARRAY_VERTICAL_MARGIN) +
+            (numArrays - 1) * ((showNames ? 20 : 0) + (showIndexes ? INDEX_HEIGHT : 0)) + margin.top + margin.bottom
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -361,7 +364,7 @@
                 .attr("y", ELEMENT_SIZE / 2 + 4)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
-                .text(d => d.value)
+                .text(d => String(d.value))  // Convert all values to strings for display
                 .attr("fill", fontColors.element)
                 .style("font-family", "Arial, sans-serif")
                 .style("shape-rendering", "crispEdges");
@@ -451,9 +454,20 @@
         drawArrays();
     }
 
+    function parseArrayInput(input) {
+        return input.split(',').map(item => {
+            item = item.trim();
+            if (item === 'true') return true;
+            if (item === 'false') return false;
+            if (item === '') return item;  // Allow empty strings
+            if (!isNaN(item)) return Number(item);
+            return item;  // If it's not a number, boolean, or empty, treat it as a string
+        });
+    }
+
     function addArray() {
         const input = document.getElementById("array-input").value;
-        const newArray = input.split(",").map(item => parseInt(item.trim()));
+        const newArray = parseArrayInput(input);
         arrayStates.push({
             elements: newArray,
             highlightedIndices: new Set()
@@ -474,7 +488,7 @@
             <div class="checkbox-control">
                 <input type="checkbox" id="array-${index}" checked>
                 <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
-                <span>${state.elements.join(", ")}</span>
+                <span>${state.elements.map(String).join(", ")}</span>
             </div>
             <div class="array-edit">
                 <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)">
@@ -493,11 +507,16 @@
 
     function editArray(index) {
         const newArrayString = document.getElementById(`edit-array-${index}`).value;
-        const newArray = newArrayString.split(",").map(item => parseInt(item.trim()));
+        const newArray = parseArrayInput(newArrayString);
+
+        // Preserve highlighted indices that are still valid in the new array
+        const newHighlightedIndices = new Set(
+            [...arrayStates[index].highlightedIndices].filter(i => i < newArray.length)
+        );
 
         arrayStates[index] = {
             elements: newArray,
-            highlightedIndices: new Set()
+            highlightedIndices: newHighlightedIndices
         };
 
         updateArrayList();
