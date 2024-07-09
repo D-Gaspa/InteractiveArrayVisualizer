@@ -322,7 +322,9 @@
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .text(d => d)
-                .attr("fill", fontColors.element);
+                .attr("fill", fontColors.element)
+                .style("font-family", "Arial, sans-serif")
+                .style("shape-rendering", "crispEdges");
 
             if (showIndexes) {
                 elements.append("text")
@@ -332,7 +334,9 @@
                     .attr("text-anchor", "middle")
                     .attr("dominant-baseline", "middle")
                     .text((d, i) => i)
-                    .attr("fill", fontColors.index);
+                    .attr("fill", fontColors.index)
+                    .style("font-family", "Arial, sans-serif")
+                    .style("shape-rendering", "crispEdges");
             }
         });
 
@@ -462,10 +466,19 @@
         const svgWidth = svgNode.width.baseVal.value;
         const svgHeight = svgNode.height.baseVal.value;
 
+        // Increase resolution
+        const scale = 2;
         const canvas = document.createElement("canvas");
-        canvas.width = svgWidth;
-        canvas.height = svgHeight;
+        canvas.width = svgWidth * scale;
+        canvas.height = svgHeight * scale;
         const ctx = canvas.getContext("2d");
+
+        // Enable smooth scaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Scale the context to increase resolution
+        ctx.scale(scale, scale);
 
         const transparentBackground = document.getElementById("transparent-background").checked;
         if (!transparentBackground) {
@@ -473,14 +486,20 @@
             ctx.fillRect(0, 0, svgWidth, svgHeight);
         }
 
-        const img = new Image();
+        // Convert SVG to data URL
         const svgData = new XMLSerializer().serializeToString(svgNode);
         const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
         const url = URL.createObjectURL(svgBlob);
 
+        const img = new Image();
         img.onload = function () {
             ctx.drawImage(img, 0, 0);
             URL.revokeObjectURL(url);
+
+            // Apply font smoothing
+            ctx.textRendering = "optimizeLegibility";
+            ctx.webkitFontSmoothing = "antialiased";
+            ctx.mozOSXFontSmoothing = "grayscale";
 
             const pngUrl = canvas.toDataURL("image/png");
             const downloadLink = document.createElement("a");
