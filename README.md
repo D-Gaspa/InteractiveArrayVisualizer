@@ -7,10 +7,11 @@ These tools are designed to help developers and students visualize various data 
 
 - Interactive multi-array input and visualization
 - Dynamic array management (add, edit, duplicate, remove arrays)
-- Custom color personalization for array elements and background
+- Custom color personalization for array elements, background, and arrows
 - Multiple highlight options for array elements
 - Index and array name display options
 - Adjustable font sizes and colors for elements, indices, and array names
+- Optional arrows between arrays with customizable labels
 - State management with local storage
 - PNG export functionality with a customizable background
 - Responsive design with dark mode interface
@@ -21,7 +22,7 @@ These tools are designed to help developers and students visualize various data 
 
 - A modern web browser (Chrome, Firefox, Safari, Edge)
 
-### To run the visualizers:
+### To run the visualizer:
 
 - Open the HTML file in your web browser.
 
@@ -36,21 +37,24 @@ These tools are designed to help developers and students visualize various data 
     - Remove arrays as needed (maintaining at least one array)
     - Rename arrays for better organization
 3. Customize the visualization:
-    - Adjust colors for base elements and different highlight states
+    - Adjust colors for base elements, different highlight states, and arrows
     - Modify font sizes and colors for array elements, indices, and names
-    - Toggle index and array name display
-4. Interact with array elements:
+    - Toggle index, array name, and arrow display
+4. Interact with array elements and arrows:
     - Click on elements to open a menu for editing or highlighting
     - Choose from multiple highlight options for each element
+    - Click on arrows to add or edit labels
 5. Export and reset:
     - Download the visualization as a PNG image with a customizable background
-    - Reset array settings or font settings to default values
+    - Reset array settings, font settings, or arrow settings to default values
 6. State Management:
     - Your changes are automatically saved and persist between sessions
     - Use the "Reset to Default" option to start fresh
 
 The Array Visualizer provides an intuitive interface for working with multiple arrays, offering extensive customization
 options and interactive features to enhance your data structure visualization experience.
+The centered array display and optional arrows between arrays allow for clear representation of relationships and 
+transformations between arrays.
 
 ## Contributing
 
