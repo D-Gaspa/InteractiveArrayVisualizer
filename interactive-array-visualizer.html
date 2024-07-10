@@ -389,10 +389,10 @@
         const totalWidth = maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
 
         let totalHeight = margin.top + margin.bottom;
-        totalHeight += numArrays * ELEMENT_SIZE + (numArrays - 1) * ELEMENT_MARGIN;
-        if (showNames) totalHeight += numArrays * 20 - (10 ? numArrays > 1 : 0);
+        totalHeight += numArrays * ELEMENT_SIZE + (numArrays - 1) * ARRAY_VERTICAL_MARGIN;
+        if (showNames) totalHeight += (numArrays * 20) - 10;
         if (showIndexes) totalHeight += numArrays * 25;
-        if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * 40
+        if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * (10 + (showNames ? 10 : 30));
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -493,7 +493,12 @@
 
                 drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex);
 
-                cumulativeHeight += 30;
+                if (!showNames) {
+                    cumulativeHeight += 30;
+                }
+                else {
+                    cumulativeHeight += 10;
+                }
             }
 
             if (arrayIndex < arrayStates.length - 1) {
@@ -505,14 +510,22 @@
     }
 
     function drawArrow(startX, startY, endX, endY, fromIndex) {
-        const arrowPath = `M${startX},${startY} L${endX},${endY}`;
+        const arrowGroup = svg.append("g").attr("class", "arrow-group");
 
-        svg.append("path")
-            .attr("d", arrowPath)
+        // Draw a wider, transparent path for easier clicking
+        arrowGroup.append("path")
+            .attr("d", `M${startX},${startY} L${endX},${endY}`)
+            .attr("stroke", "transparent")
+            .attr("stroke-width", 20)
+            .style("cursor", "pointer")
+            .on("click", (event) => showArrowMenu(event, fromIndex));
+
+        // Draw the visible arrow
+        arrowGroup.append("path")
+            .attr("d", `M${startX},${startY} L${endX},${endY}`)
             .attr("stroke", arrowColor)
             .attr("stroke-width", 3)
-            .attr("marker-end", "url(#arrowhead)")
-            .on("click", (event) => showArrowMenu(event, Math.floor((startY + endY) / 2)));
+            .attr("marker-end", "url(#arrowhead)");
 
         if (!svg.select("#arrowhead").node()) {
             svg.append("defs").append("marker")
@@ -529,19 +542,22 @@
         }
 
         if (arrowLabels[fromIndex]) {
-            svg.append("text")
+            arrowGroup.append("text")
                 .attr("x", (startX + endX) / 2 + 20)
-                .attr("y", (startY + endY) / 2)
-                .attr("text-anchor", "middle")
+                .attr("y", (startY + endY) / 2 + 10)
+                .attr("text-anchor", "left")
                 .attr("fill", arrowColor)
                 .text(arrowLabels[fromIndex]);
         }
     }
 
-    function updateArrowLabel(arrowIndex) {
+    function updateArrowLabel() {
+        const menu = document.getElementById('arrow-menu');
+        const arrowIndex = parseInt(menu.dataset.arrowIndex);
         arrowLabels[arrowIndex] = document.getElementById('arrow-label-input').value;
         drawArrays();
         saveState();
+        hideArrowMenu();
     }
 
     // Load state from local storage or use default values
@@ -722,6 +738,9 @@
 
         document.getElementById('arrow-label-input').value = arrowLabels[arrowIndex] || '';
         document.getElementById('arrow-label-input').onchange = () => updateArrowLabel(arrowIndex);
+
+        // Store the current arrow index
+        menu.dataset.arrowIndex = arrowIndex;
     }
 
     function showElementMenu(event, arrayIndex, elementIndex, rect) {
@@ -940,7 +959,7 @@
 <div id="arrow-menu"
      style="display: none; position: absolute; background-color: #444; border: 1px solid #666; border-radius: 4px; padding: 10px;">
     <label for="arrow-label-input"></label><input type="text" id="arrow-label-input" placeholder="Enter arrow label">
-    <button onclick="hideArrowMenu()">Close</button>
+    <button onclick="updateArrowLabel()">Update</button>
 </div>
 </body>
 </html>
