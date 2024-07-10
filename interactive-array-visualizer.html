@@ -34,6 +34,8 @@
             background-color: #2a2a2a;
             padding: 20px;
             border-radius: 8px;
+            max-width: 835px;
+            width: 100%;
         }
 
         .control-section {
@@ -41,6 +43,13 @@
             flex-wrap: wrap;
             gap: 10px;
             align-items: center;
+        }
+
+        .divisor {
+            height: 2px;
+            background-color: #333;
+            width: 100%;
+            margin: 5px 0;
         }
 
         .section-title {
@@ -65,11 +74,18 @@
             filter: brightness(85%);
         }
 
-        input[type="text"], input[type="number"] {
+        input[type="text"] {
             background-color: #3a3a3a;
             color: #e0e0e0;
             border: 1px solid #5a5a5a;
             width: 195px;
+        }
+
+        input[type="number"] {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #5a5a5a;
+            width: 30px;
         }
 
         input[type="color"] {
@@ -88,7 +104,6 @@
         }
 
         .color-picker label {
-            font-size: 14px;
             min-width: 70px;
             text-align: right;
             margin-right: 5px;
@@ -120,7 +135,6 @@
 
         #array-list {
             width: 100%;
-            margin-bottom: 20px;
         }
 
         .array-name {
@@ -139,7 +153,6 @@
             align-items: center;
             padding: 10px;
             background-color: #3a3a3a;
-            margin-bottom: 5px;
             border-radius: 4px;
         }
 
@@ -153,7 +166,6 @@
 
         .array-edit {
             display: flex;
-            gap: 10px;
             align-items: center;
         }
 
@@ -229,6 +241,7 @@
         <label for="array-input"></label><input type="text" id="array-input"
                                                 placeholder="Enter array (comma-separated)">
         <button onclick="addArray()">Add Array</button>
+        <div class="divisor"></div>
         <div class="section-title">Array List</div>
         <div id="array-list"></div>
         <div style="display: none;">
@@ -236,6 +249,7 @@
             <div class="array-name"></div>
         </div>
     </div>
+    <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">Display Options</div>
         <div class="checkbox-control">
@@ -247,6 +261,7 @@
             <label for="show-names">Show Array Names</label>
         </div>
     </div>
+    <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">Color Settings</div>
         <div class="color-picker">
@@ -266,35 +281,38 @@
             <input type="color" id="highlight3-color" value="#91C0BF" onchange="updateColors()">
         </div>
     </div>
+    <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">Font Settings</div>
         <div class="font-size-control">
-            <label for="element-font-size">Element Font Size:</label>
+            <label for="element-font-size">Element Size:</label>
             <input type="number" id="element-font-size" value="30" min="20" max="50" onchange="changeFontSize()">
         </div>
         <div class="font-size-control">
-            <label for="index-font-size">Index Font Size:</label>
+            <label for="index-font-size">Index Size:</label>
             <input type="number" id="index-font-size" value="17" min="10" max="20" onchange="changeFontSize()">
         </div>
         <div class="color-picker">
-            <label for="element-font-color">Element Font Color:</label>
+            <label for="element-font-color">Element Color:</label>
             <input type="color" id="element-font-color" value="#1a1a1a" onchange="updateFontColors()">
         </div>
         <div class="color-picker">
-            <label for="index-font-color">Index and Name Font Color:</label>
+            <label for="index-font-color">Index and Name Color:</label>
             <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
         </div>
     </div>
+    <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">Reset Settings</div>
         <button onclick="resetArraySettings()">Reset Array Settings</button>
         <button onclick="resetFontSettings()">Reset Font Settings</button>
     </div>
+    <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">Export</div>
         <div class="color-picker">
             <label for="background-color">Background Color:</label>
-            <input type="color" id="background-color" value="#2a2a2a">
+            <input type="color" id="background-color" value="#2a2a2a" onchange="changeBackgroundColor()">
         </div>
         <div class="checkbox-control">
             <input type="checkbox" id="transparent-background">
@@ -302,6 +320,7 @@
         </div>
         <button onclick="downloadImage()">Download Image</button>
     </div>
+    <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">State Management</div>
         <button id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
@@ -313,7 +332,8 @@
         base: "#E3F9F9",
         highlight1: "#1AD1B2",
         highlight2: "#EA6C6C",
-        highlight3: "#2175C4"
+        highlight3: "#2175C4",
+        backgroundColor: "#2a2a2a"
     };
 
     const defaultFontSizes = {
@@ -453,8 +473,10 @@
             fontColors = state.fontColors;
             document.getElementById("base-color").value = colors.base;
             document.getElementById("highlight1-color").value = colors.highlight1;
-            document.getElementById("highlight2-color").value = defaultColors.highlight2;
-            document.getElementById("highlight3-color").value = defaultColors.highlight3;
+            document.getElementById("highlight2-color").value = colors.highlight2;
+            document.getElementById("highlight3-color").value = colors.highlight3;
+            document.getElementById("background-color").value = colors.backgroundColor;
+            document.getElementById("array-container").style.backgroundColor = colors.backgroundColor;
             document.getElementById("element-font-color").value = fontColors.element;
             document.getElementById("index-font-color").value = fontColors.index;
             document.getElementById("element-font-size").value = state.fontSizes.element;
@@ -497,6 +519,8 @@
         document.getElementById("highlight1-color").value = defaultColors.highlight1;
         document.getElementById("highlight2-color").value = defaultColors.highlight2;
         document.getElementById("highlight3-color").value = defaultColors.highlight3;
+        document.getElementById("background-color").value = defaultColors.backgroundColor;
+        document.getElementById("array-container").style.backgroundColor = defaultColors.backgroundColor;
         document.getElementById("element-font-color").value = defaultFontColors.element;
         document.getElementById("index-font-color").value = defaultFontColors.index;
         document.getElementById("element-font-size").value = defaultFontSizes.element;
@@ -541,11 +565,11 @@
             <div class="checkbox-control">
                 <input type="checkbox" id="array-${index}" checked>
                 <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
-                <span>${state.elements.map(String).join(", ")}</span>
             </div>
             <div class="array-edit">
-                <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)">
+                <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)" value="${state.elements.map(String).join(", ")}">
                 <button onclick="editArray(${index})">Edit</button>
+                <button onclick="duplicateArray(${index})">Duplicate</button>
                 <button id="remove-button-color" onclick="removeArray(${index})">Remove</button>
             </div>
         `;
@@ -567,6 +591,17 @@
             highlights: new Map()
         };
 
+        updateArrayList();
+        drawArrays();
+    }
+
+    function duplicateArray(index) {
+        const newArray = arrayStates[index];
+        arrayStates.push({
+            elements: [...newArray.elements],
+            highlights: new Map(newArray.highlights)
+        });
+        arrayNames.push(`${arrayNames[index]} (Copy)`);
         updateArrayList();
         drawArrays();
     }
@@ -680,6 +715,12 @@
         document.getElementById("highlight2-color").value = defaultColors.highlight2;
         document.getElementById("highlight3-color").value = defaultColors.highlight3;
         updateColors();
+    }
+
+    function changeBackgroundColor() {
+        document.getElementById("array-container").style.backgroundColor = document.getElementById("background-color").value;
+        colors.backgroundColor = document.getElementById("background-color").value;
+        saveState();
     }
 
     function downloadImage() {
