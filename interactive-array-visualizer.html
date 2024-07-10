@@ -34,7 +34,7 @@
             background-color: #2a2a2a;
             padding: 20px;
             border-radius: 8px;
-            max-width: 835px;
+            max-width: 830px;
             width: 100%;
         }
 
@@ -109,14 +109,20 @@
             margin-right: 5px;
         }
 
-        .font-size-control {
+        .text-settings {
             display: flex;
-            align-items: center;
+            justify-content: space-between;
             gap: 10px;
+            align-items: center;
         }
 
-        .font-size-control label {
-            min-width: 120px;
+        .text-settings label {
+            text-align: right;
+        }
+
+        .text-settings input[type="number"],
+        .text-settings input[type="color"] {
+            width: 60px;
         }
 
         .checkbox-control {
@@ -283,20 +289,17 @@
     </div>
     <div class="divisor"></div>
     <div class="control-section">
-        <div class="section-title">Font Settings</div>
-        <div class="font-size-control">
+        <div class="section-title">Text Settings</div>
+        <div class="text-settings">
             <label for="element-font-size">Element Size:</label>
             <input type="number" id="element-font-size" value="30" min="20" max="50" onchange="changeFontSize()">
-        </div>
-        <div class="font-size-control">
+
             <label for="index-font-size">Index Size:</label>
             <input type="number" id="index-font-size" value="17" min="10" max="20" onchange="changeFontSize()">
-        </div>
-        <div class="color-picker">
+
             <label for="element-font-color">Element Color:</label>
             <input type="color" id="element-font-color" value="#1a1a1a" onchange="updateFontColors()">
-        </div>
-        <div class="color-picker">
+
             <label for="index-font-color">Index and Name Color:</label>
             <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
         </div>
@@ -567,8 +570,8 @@
                 <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
             </div>
             <div class="array-edit">
-                <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)" value="${state.elements.map(String).join(", ")}">
-                <button onclick="editArray(${index})">Edit</button>
+                <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)"
+                value="${state.elements.map(String).join(", ")}" onchange="editArray(${index})">
                 <button onclick="duplicateArray(${index})">Duplicate</button>
                 <button id="remove-button-color" onclick="removeArray(${index})">Remove</button>
             </div>
