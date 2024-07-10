@@ -317,6 +317,7 @@
         <div class="section-title">Reset Settings</div>
         <button onclick="resetArraySettings()">Reset Array Settings</button>
         <button onclick="resetFontSettings()">Reset Font Settings</button>
+        <button onclick="resetArrowSettings()">Reset Arrow Settings</button>
     </div>
     <div class="divisor"></div>
     <div class="control-section">
@@ -392,7 +393,7 @@
         totalHeight += numArrays * ELEMENT_SIZE + (numArrays - 1) * ARRAY_VERTICAL_MARGIN;
         if (showNames) totalHeight += (numArrays * 20) - 10;
         if (showIndexes) totalHeight += numArrays * 25;
-        if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * (10 + (showNames ? 10 : 30));
+        if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * 40;
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -406,19 +407,23 @@
     function drawArrays() {
         svg.selectAll("*").remove();
 
-        updateSVGSize();
+        const {totalWidth} = updateSVGSize();
         const showIndexes = document.getElementById("show-indexes").checked;
         const showNames = document.getElementById("show-names").checked;
         const showArrows = document.getElementById("show-arrows").checked;
 
         let cumulativeHeight = margin.top;
+        let maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
 
         arrayStates.forEach((state, arrayIndex) => {
+            const arrayWidth = calculateArrayWidth(state.elements.length);
+            const startX = (totalWidth - arrayWidth) / 2;
+
             if (showNames) {
                 if (arrayIndex > 0) cumulativeHeight += 10;
                 svg.append("text")
                     .attr("class", "array-name")
-                    .attr("x", margin.left)
+                    .attr("x", startX)
                     .attr("y", cumulativeHeight)
                     .text(arrayNames[arrayIndex] || `Array ${arrayIndex + 1}`)
                     .attr("fill", fontColors.index)
@@ -430,7 +435,7 @@
 
             // Draw array elements
             const arrayGroup = svg.append("g")
-                .attr("transform", `translate(${margin.left}, ${cumulativeHeight})`);
+                .attr("transform", `translate(${startX}, ${cumulativeHeight})`);
 
             const elements = arrayGroup.selectAll("g")
                 .data(state.elements.map((value, index) => ({
@@ -489,16 +494,11 @@
                 cumulativeHeight += 10;
                 const startY = cumulativeHeight;
                 const endY = cumulativeHeight + 30;
-                const arrowWidth = Math.max(state.elements.length * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100); // Ensure minimum width
+                const arrowWidth = Math.max(maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100); // Ensure minimum width
 
                 drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex);
 
-                if (!showNames) {
-                    cumulativeHeight += 30;
-                }
-                else {
-                    cumulativeHeight += 10;
-                }
+                cumulativeHeight += 30;
             }
 
             if (arrayIndex < arrayStates.length - 1) {
@@ -509,16 +509,12 @@
         changeFontSize();
     }
 
+    function calculateArrayWidth(arrayLength) {
+        return arrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN;
+    }
+
     function drawArrow(startX, startY, endX, endY, fromIndex) {
         const arrowGroup = svg.append("g").attr("class", "arrow-group");
-
-        // Draw a wider, transparent path for easier clicking
-        arrowGroup.append("path")
-            .attr("d", `M${startX},${startY} L${endX},${endY}`)
-            .attr("stroke", "transparent")
-            .attr("stroke-width", 20)
-            .style("cursor", "pointer")
-            .on("click", (event) => showArrowMenu(event, fromIndex));
 
         // Draw the visible arrow
         arrowGroup.append("path")
@@ -540,6 +536,14 @@
                 .attr("d", "M0,-5L10,0L0,5")
                 .attr("fill", arrowColor);
         }
+
+        // Draw a wider, transparent path for easier clicking
+        arrowGroup.append("path")
+            .attr("d", `M${startX},${startY} L${endX},${endY}`)
+            .attr("stroke", "transparent")
+            .attr("stroke-width", 20)
+            .style("cursor", "pointer")
+            .on("click", (event) => showArrowMenu(event, fromIndex));
 
         if (arrowLabels[fromIndex]) {
             arrowGroup.append("text")
@@ -859,8 +863,14 @@
         document.getElementById("highlight2-color").value = defaultColors.highlight2;
         document.getElementById("highlight3-color").value = defaultColors.highlight3;
         document.getElementById("background-color").value = defaultColors.backgroundColor;
+    }
+
+    function resetArrowSettings() {
         document.getElementById("arrow-color").value = defaultArrowColor;
+        arrowColor = defaultArrowColor;
         updateColors();
+        drawArrays();
+        saveState();
     }
 
     function changeBackgroundColor() {
