@@ -266,6 +266,10 @@
             <input type="checkbox" id="show-names" checked onchange="drawArrays()">
             <label for="show-names">Show Array Names</label>
         </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-arrows" onchange="drawArrays()">
+            <label for="show-arrows">Show Arrows</label>
+        </div>
     </div>
     <div class="divisor"></div>
     <div class="control-section">
@@ -285,6 +289,10 @@
         <div class="color-picker">
             <label for="highlight3-color">Highlight 3:</label>
             <input type="color" id="highlight3-color" value="#91C0BF" onchange="updateColors()">
+        </div>
+        <div class="color-picker">
+            <label for="arrow-color">Arrow Color:</label>
+            <input type="color" id="arrow-color" value="#FFFFFF" onchange="updateColors()">
         </div>
     </div>
     <div class="divisor"></div>
@@ -339,6 +347,8 @@
         backgroundColor: "#2a2a2a"
     };
 
+    const defaultArrowColor = "#ffffff";
+
     const defaultFontSizes = {
         element: 30,
         index: 17
@@ -353,7 +363,7 @@
     const ELEMENT_MARGIN = 2;
     const INDEX_HEIGHT = 35;
     const ARRAY_VERTICAL_MARGIN = 20;
-    const margin = {top: 20, right: 20, bottom: 20, left: 20};
+    const margin = {top: 30, right: 20, bottom: 30, left: 20};
 
     let arrayStates = [{
         elements: [1, 2, 3, 4, 5],
@@ -366,15 +376,23 @@
     let fontColors = {...defaultFontColors};
     let arrayNames = ["Array 1"];
     let currentArrayIndex, currentElementIndex;
+    let showArrows = false;
+    let arrowLabels = [];
+    let arrowColor = defaultArrowColor;
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
         const showNames = document.getElementById("show-names").checked;
+        const showArrows = document.getElementById("show-arrows").checked;
         const numArrays = arrayStates.length;
         const maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
         const totalWidth = maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
-        const totalHeight = numArrays * (ELEMENT_SIZE + ARRAY_VERTICAL_MARGIN) +
-            (numArrays - 1) * ((showNames ? 20 : 0) + (showIndexes ? INDEX_HEIGHT : 0)) + margin.top + margin.bottom
+
+        let totalHeight = margin.top + margin.bottom;
+        totalHeight += numArrays * ELEMENT_SIZE + (numArrays - 1) * ELEMENT_MARGIN;
+        if (showNames) totalHeight += numArrays * 20 - (10 ? numArrays > 1 : 0);
+        if (showIndexes) totalHeight += numArrays * 25;
+        if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * 40
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -391,22 +409,28 @@
         updateSVGSize();
         const showIndexes = document.getElementById("show-indexes").checked;
         const showNames = document.getElementById("show-names").checked;
+        const showArrows = document.getElementById("show-arrows").checked;
+
+        let cumulativeHeight = margin.top;
 
         arrayStates.forEach((state, arrayIndex) => {
-            const arrayGroup = svg.append("g")
-                .attr("transform", `translate(${margin.left}, ${margin.top + arrayIndex * (ELEMENT_SIZE + (showIndexes ? INDEX_HEIGHT : 0) + ARRAY_VERTICAL_MARGIN + (showNames ? 20 : 0))})`);
-
             if (showNames) {
-                arrayGroup.append("text")
+                if (arrayIndex > 0) cumulativeHeight += 10;
+                svg.append("text")
                     .attr("class", "array-name")
-                    .attr("x", 0)
-                    .attr("y", -5)
+                    .attr("x", margin.left)
+                    .attr("y", cumulativeHeight)
                     .text(arrayNames[arrayIndex] || `Array ${arrayIndex + 1}`)
-                    .attr("fill", fontColors.index)  // Use the same color as indexes
+                    .attr("fill", fontColors.index)
                     .style("font-family", "monospace")
                     .style("font-size", "14px")
                     .style("shape-rendering", "crispEdges");
+                cumulativeHeight += 10;
             }
+
+            // Draw array elements
+            const arrayGroup = svg.append("g")
+                .attr("transform", `translate(${margin.left}, ${cumulativeHeight})`);
 
             const elements = arrayGroup.selectAll("g")
                 .data(state.elements.map((value, index) => ({
@@ -445,6 +469,8 @@
                 .style("font-family", "Arial, sans-serif")
                 .style("shape-rendering", "crispEdges");
 
+            cumulativeHeight += ELEMENT_SIZE;
+
             if (showIndexes) {
                 elements.append("text")
                     .attr("class", "index-text")
@@ -456,10 +482,66 @@
                     .attr("fill", fontColors.index)
                     .style("font-family", "Arial, sans-serif")
                     .style("shape-rendering", "crispEdges");
+                cumulativeHeight += 25;
+            }
+
+            if (showArrows && arrayIndex < arrayStates.length - 1) {
+                cumulativeHeight += 10;
+                const startY = cumulativeHeight;
+                const endY = cumulativeHeight + 30;
+                const arrowWidth = Math.max(state.elements.length * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100); // Ensure minimum width
+
+                drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex);
+
+                cumulativeHeight += 30;
+            }
+
+            if (arrayIndex < arrayStates.length - 1) {
+                cumulativeHeight += ARRAY_VERTICAL_MARGIN;
             }
         });
 
         changeFontSize();
+    }
+
+    function drawArrow(startX, startY, endX, endY, fromIndex) {
+        const arrowPath = `M${startX},${startY} L${endX},${endY}`;
+
+        svg.append("path")
+            .attr("d", arrowPath)
+            .attr("stroke", arrowColor)
+            .attr("stroke-width", 3)
+            .attr("marker-end", "url(#arrowhead)")
+            .on("click", (event) => showArrowMenu(event, Math.floor((startY + endY) / 2)));
+
+        if (!svg.select("#arrowhead").node()) {
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 5)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", arrowColor);
+        }
+
+        if (arrowLabels[fromIndex]) {
+            svg.append("text")
+                .attr("x", (startX + endX) / 2 + 20)
+                .attr("y", (startY + endY) / 2)
+                .attr("text-anchor", "middle")
+                .attr("fill", arrowColor)
+                .text(arrowLabels[fromIndex]);
+        }
+    }
+
+    function updateArrowLabel(arrowIndex) {
+        arrowLabels[arrowIndex] = document.getElementById('arrow-label-input').value;
+        drawArrays();
+        saveState();
     }
 
     // Load state from local storage or use default values
@@ -486,6 +568,10 @@
             document.getElementById("index-font-size").value = state.fontSizes.index;
             document.getElementById("show-indexes").checked = state.showIndexes;
             document.getElementById("show-names").checked = state.showNames;
+            document.getElementById("show-arrows").checked = state.showArrows;
+            document.getElementById("arrow-color").value = state.arrowColor;
+            arrowColor = state.arrowColor || defaultArrowColor;
+            arrowLabels = state.arrowLabels || [];
         }
     }
 
@@ -504,7 +590,10 @@
                 index: document.getElementById("index-font-size").value
             },
             showIndexes: document.getElementById("show-indexes").checked,
-            showNames: document.getElementById("show-names").checked
+            showNames: document.getElementById("show-names").checked,
+            showArrows: document.getElementById("show-arrows").checked,
+            arrowLabels: arrowLabels,
+            arrowColor: arrowColor
         };
         localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
     }
@@ -530,6 +619,10 @@
         document.getElementById("index-font-size").value = defaultFontSizes.index;
         document.getElementById("show-indexes").checked = true;
         document.getElementById("show-names").checked = true;
+        document.getElementById("show-arrows").checked = false;
+        document.getElementById("arrow-color").value = defaultArrowColor;
+        arrowColor = defaultArrowColor;
+        arrowLabels = [];
         updateArrayList();
         drawArrays();
     }
@@ -621,6 +714,16 @@
         saveState();
     }
 
+    function showArrowMenu(event, arrowIndex) {
+        const menu = document.getElementById('arrow-menu');
+        menu.style.display = 'block';
+        menu.style.left = `${event.pageX}px`;
+        menu.style.top = `${event.pageY}px`;
+
+        document.getElementById('arrow-label-input').value = arrowLabels[arrowIndex] || '';
+        document.getElementById('arrow-label-input').onchange = () => updateArrowLabel(arrowIndex);
+    }
+
     function showElementMenu(event, arrayIndex, elementIndex, rect) {
         const menu = document.getElementById('element-menu');
         menu.style.display = 'block';
@@ -649,8 +752,25 @@
         adjustMenuPosition(menu);
     }
 
+    function adjustMenuPosition(menu) {
+        const rect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        if (rect.right > viewportWidth) {
+            menu.style.left = `${viewportWidth - rect.width}px`;
+        }
+        if (rect.bottom > viewportHeight) {
+            menu.style.top = `${parseInt(menu.style.top) - rect.height - ELEMENT_SIZE}px`;
+        }
+    }
+
     function hideElementMenu() {
         document.getElementById('element-menu').style.display = 'none';
+    }
+
+    function hideArrowMenu() {
+        document.getElementById('arrow-menu').style.display = 'none';
     }
 
     function updateElement() {
@@ -680,6 +800,8 @@
         colors.highlight1 = document.getElementById("highlight1-color").value;
         colors.highlight2 = document.getElementById("highlight2-color").value;
         colors.highlight3 = document.getElementById("highlight3-color").value;
+        arrowColor = document.getElementById("arrow-color").value;
+        svg.select("#arrowhead path").attr("fill", arrowColor);
         drawArrays();
     }
 
@@ -717,6 +839,8 @@
         document.getElementById("highlight1-color").value = defaultColors.highlight1;
         document.getElementById("highlight2-color").value = defaultColors.highlight2;
         document.getElementById("highlight3-color").value = defaultColors.highlight3;
+        document.getElementById("background-color").value = defaultColors.backgroundColor;
+        document.getElementById("arrow-color").value = defaultArrowColor;
         updateColors();
     }
 
@@ -788,18 +912,12 @@
         }
     });
 
-    function adjustMenuPosition(menu) {
-        const rect = menu.getBoundingClientRect();
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-        if (rect.right > viewportWidth) {
-            menu.style.left = `${viewportWidth - rect.width}px`;
-        }
-        if (rect.bottom > viewportHeight) {
-            menu.style.top = `${parseInt(menu.style.top) - rect.height - ELEMENT_SIZE}px`;
-        }
-    }
+    // Add an event listener for the show-arrows checkbox
+    document.getElementById("show-arrows").addEventListener("change", function () {
+        showArrows = this.checked;
+        drawArrays();
+        saveState();
+    });
 
     // Load state when the page loads
     window.onload = function () {
@@ -818,6 +936,11 @@
         <button id="highlight3-button" class="highlight-button" onclick="setHighlight(3)">H3</button>
     </div>
     <button id="remove-button-color" onclick="removeHighlight()">Remove Highlight</button>
+</div>
+<div id="arrow-menu"
+     style="display: none; position: absolute; background-color: #444; border: 1px solid #666; border-radius: 4px; padding: 10px;">
+    <label for="arrow-label-input"></label><input type="text" id="arrow-label-input" placeholder="Enter arrow label">
+    <button onclick="hideArrowMenu()">Close</button>
 </div>
 </body>
 </html>
