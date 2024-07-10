@@ -291,7 +291,15 @@
             <input type="color" id="highlight3-color" value="#91C0BF" onchange="updateColors()">
         </div>
         <div class="color-picker">
-            <label for="arrow-color">Arrow Color:</label>
+            <label for="element-font-color">Element:</label>
+            <input type="color" id="element-font-color" value="#1a1a1a" onchange="updateFontColors()">
+        </div>
+        <div class="color-picker">
+            <label for="index-font-color">Index and Name:</label>
+            <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
+        </div>
+        <div class="color-picker">
+            <label for="arrow-color">Arrow:</label>
             <input type="color" id="arrow-color" value="#FFFFFF" onchange="updateColors()">
         </div>
     </div>
@@ -304,12 +312,6 @@
 
             <label for="index-font-size">Index Size:</label>
             <input type="number" id="index-font-size" value="17" min="10" max="20" onchange="changeFontSize()">
-
-            <label for="element-font-color">Element Color:</label>
-            <input type="color" id="element-font-color" value="#1a1a1a" onchange="updateFontColors()">
-
-            <label for="index-font-color">Index and Name Color:</label>
-            <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
         </div>
     </div>
     <div class="divisor"></div>
@@ -360,7 +362,6 @@
         index: "#e0e0e0"
     };
 
-    const ELEMENT_SIZE = 80;
     const ELEMENT_MARGIN = 2;
     const INDEX_HEIGHT = 35;
     const ARRAY_VERTICAL_MARGIN = 20;
@@ -372,7 +373,8 @@
     }];
 
     const svg = d3.select("svg");
-
+    const ELEMENT_HEIGHT = 80;
+    let elementWidth = 80;
     let colors = {...defaultColors};
     let fontColors = {...defaultFontColors};
     let arrayNames = ["Array 1"];
@@ -387,10 +389,15 @@
         const showArrows = document.getElementById("show-arrows").checked;
         const numArrays = arrayStates.length;
         const maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
-        const totalWidth = maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
+        // Update element width based on the maximum element size
+        elementWidth = Math.max(...arrayStates.map(state => {
+            return Math.max(...state.elements.map(value =>
+                calculateElementWidth(value, document.getElementById("element-font-size").value)));
+        }));
+        const totalWidth = maxArrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
 
         let totalHeight = margin.top + margin.bottom;
-        totalHeight += numArrays * ELEMENT_SIZE + (numArrays - 1) * ARRAY_VERTICAL_MARGIN;
+        totalHeight += numArrays * ELEMENT_HEIGHT + (numArrays - 1) * ARRAY_VERTICAL_MARGIN;
         if (showNames) totalHeight += (numArrays * 20) - 10;
         if (showIndexes) totalHeight += numArrays * 25;
         if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * 40;
@@ -444,12 +451,12 @@
                 })), d => d.index) // Use index as the key for data binding
                 .enter()
                 .append("g")
-                .attr("transform", (d, i) => `translate(${i * (ELEMENT_SIZE + ELEMENT_MARGIN)}, 0)`);
+                .attr("transform", (d, i) => `translate(${i * (elementWidth + ELEMENT_MARGIN)}, 0)`);
 
             elements.append("rect")
                 .attr("class", "array-element")
-                .attr("width", ELEMENT_SIZE)
-                .attr("height", ELEMENT_SIZE)
+                .attr("width", elementWidth)
+                .attr("height", ELEMENT_HEIGHT)
                 .attr("fill", d => {
                     const highlightType = state.highlights.get(d.index);
                     if (highlightType === 1) return colors.highlight1;
@@ -465,8 +472,8 @@
 
             elements.append("text")
                 .attr("class", "array-text")
-                .attr("x", ELEMENT_SIZE / 2)
-                .attr("y", ELEMENT_SIZE / 2 + 4)
+                .attr("x", elementWidth / 2)
+                .attr("y", ELEMENT_HEIGHT / 2 + 4)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .text(d => String(d.value))  // Convert all values to strings for display
@@ -474,13 +481,13 @@
                 .style("font-family", "Arial, sans-serif")
                 .style("shape-rendering", "crispEdges");
 
-            cumulativeHeight += ELEMENT_SIZE;
+            cumulativeHeight += ELEMENT_HEIGHT;
 
             if (showIndexes) {
                 elements.append("text")
                     .attr("class", "index-text")
-                    .attr("x", ELEMENT_SIZE / 2)
-                    .attr("y", ELEMENT_SIZE + INDEX_HEIGHT / 2)
+                    .attr("x", elementWidth / 2)
+                    .attr("y", ELEMENT_HEIGHT + INDEX_HEIGHT / 2)
                     .attr("text-anchor", "middle")
                     .attr("dominant-baseline", "middle")
                     .text(d => d.index)
@@ -494,7 +501,7 @@
                 cumulativeHeight += 10;
                 const startY = cumulativeHeight;
                 const endY = cumulativeHeight + 30;
-                const arrowWidth = Math.max(maxArrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100); // Ensure minimum width
+                const arrowWidth = Math.max(maxArrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100);
 
                 drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex);
 
@@ -510,7 +517,21 @@
     }
 
     function calculateArrayWidth(arrayLength) {
-        return arrayLength * (ELEMENT_SIZE + ELEMENT_MARGIN) - ELEMENT_MARGIN;
+        return arrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN;
+    }
+
+    function getTextWidth(text, font) {
+        const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+        const context = canvas.getContext("2d");
+        context.font = font;
+        const metrics = context.measureText(text);
+        return metrics.width;
+    }
+
+    function calculateElementWidth(value, fontSize) {
+        const padding = 10; // Padding on each side
+        const textWidth = getTextWidth(String(value), `${fontSize}px Arial`);
+        return Math.max(80, textWidth + 2 * padding);
     }
 
     function drawArrow(startX, startY, endX, endY, fromIndex) {
@@ -576,6 +597,7 @@
             arrayNames = state.arrayNames;
             colors = state.colors;
             fontColors = state.fontColors;
+            elementWidth = state.elementWidth || elementWidth;
             document.getElementById("base-color").value = colors.base;
             document.getElementById("highlight1-color").value = colors.highlight1;
             document.getElementById("highlight2-color").value = colors.highlight2;
@@ -605,6 +627,7 @@
             arrayNames,
             colors,
             fontColors,
+            elementWidth,
             fontSizes: {
                 element: document.getElementById("element-font-size").value,
                 index: document.getElementById("index-font-size").value
@@ -627,6 +650,7 @@
         arrayNames = ["Array 1"];
         colors = {...defaultColors};
         fontColors = {...defaultFontColors};
+        elementWidth = 80;
         document.getElementById("base-color").value = defaultColors.base;
         document.getElementById("highlight1-color").value = defaultColors.highlight1;
         document.getElementById("highlight2-color").value = defaultColors.highlight2;
@@ -784,7 +808,7 @@
             menu.style.left = `${viewportWidth - rect.width}px`;
         }
         if (rect.bottom > viewportHeight) {
-            menu.style.top = `${parseInt(menu.style.top) - rect.height - ELEMENT_SIZE}px`;
+            menu.style.top = `${parseInt(menu.style.top) - rect.height - ELEMENT_HEIGHT}px`;
         }
     }
 
