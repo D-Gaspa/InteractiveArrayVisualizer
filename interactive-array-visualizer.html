@@ -159,6 +159,12 @@
         .array-edit input {
             flex-grow: 1;
         }
+
+        .highlight-button {
+            width: 100%;
+            margin-bottom: 5px;
+            padding: 8px 16px;
+        }
     </style>
 </head>
 <body>
@@ -190,29 +196,22 @@
         </div>
     </div>
     <div class="control-section">
-        <div class="section-title">Array Operations</div>
-        <div class="array-edit">
-            <label for="split-index"></label><input type="number" id="split-index" placeholder="Split index" min="0">
-            <button onclick="splitArrays()">Split Arrays</button>
-        </div>
-    </div>
-    <div class="control-section">
         <div class="section-title">Color Settings</div>
         <div class="color-picker">
             <label for="base-color">Base:</label>
             <input type="color" id="base-color" value="#E3F9F9" onchange="updateColors()">
         </div>
         <div class="color-picker">
-            <label for="highlight-color">Highlight:</label>
-            <input type="color" id="highlight-color" value="#1AD1B2" onchange="updateColors()">
+            <label for="highlight1-color">Highlight 1:</label>
+            <input type="color" id="highlight1-color" value="#1AD1B2" onchange="updateColors()">
         </div>
         <div class="color-picker">
-            <label for="split1-color">Split 1:</label>
-            <input type="color" id="split1-color" value="#1AD1B2" onchange="updateColors()">
+            <label for="highlight2-color">Highlight 2:</label>
+            <input type="color" id="highlight2-color" value="#1AD1B2" onchange="updateColors()">
         </div>
         <div class="color-picker">
-            <label for="split2-color">Split 2:</label>
-            <input type="color" id="split2-color" value="#91C0BF" onchange="updateColors()">
+            <label for="highlight3-color">Highlight 3:</label>
+            <input type="color" id="highlight3-color" value="#91C0BF" onchange="updateColors()">
         </div>
     </div>
     <div class="control-section">
@@ -260,9 +259,9 @@
 <script>
     const defaultColors = {
         base: "#E3F9F9",
-        highlight: "#1AD1B2",
-        split1: "#1AD1B2",
-        split2: "#91C0BF"
+        highlight1: "#1AD1B2",
+        highlight2: "#EA6C6C",
+        highlight3: "#2175C4"
     };
 
     const defaultFontSizes = {
@@ -283,7 +282,7 @@
 
     let arrayStates = [{
         elements: [1, 2, 3, 4, 5],
-        highlightedIndices: new Set()
+        highlights: new Map() // Map of index to highlight type (1, 2, or 3)
     }];
 
     const svg = d3.select("svg");
@@ -291,6 +290,7 @@
     let colors = {...defaultColors};
     let fontColors = {...defaultFontColors};
     let arrayNames = ["Array 1"];
+    let currentArrayIndex, currentElementIndex;
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
@@ -346,16 +346,17 @@
                 .attr("class", "array-element")
                 .attr("width", ELEMENT_SIZE)
                 .attr("height", ELEMENT_SIZE)
-                .attr("fill", d => state.highlightedIndices.has(d.index) ? colors.highlight : colors.base)
+                .attr("fill", d => {
+                    const highlightType = state.highlights.get(d.index);
+                    if (highlightType === 1) return colors.highlight1;
+                    if (highlightType === 2) return colors.highlight2;
+                    if (highlightType === 3) return colors.highlight3;
+                    return colors.base;
+                })
                 .on("click", function (event, d) {
-                    if (state.highlightedIndices.has(d.index)) {
-                        state.highlightedIndices.delete(d.index);
-                        d3.select(this).attr("fill", colors.base);
-                    } else {
-                        state.highlightedIndices.add(d.index);
-                        d3.select(this).attr("fill", colors.highlight);
-                    }
-                    saveState();
+                    event.stopPropagation(); // Stop the event from bubbling up
+                    const rect = event.target.getBoundingClientRect();
+                    showElementMenu(event, arrayIndex, d.index, rect);
                 });
 
             elements.append("text")
@@ -393,15 +394,15 @@
             const state = JSON.parse(savedState);
             arrayStates = state.arrayStates.map(arr => ({
                 elements: arr.elements,
-                highlightedIndices: new Set(arr.highlightedIndices)
+                highlights: new Map(arr.highlights || [])
             }));
             arrayNames = state.arrayNames;
             colors = state.colors;
             fontColors = state.fontColors;
             document.getElementById("base-color").value = colors.base;
-            document.getElementById("highlight-color").value = colors.highlight;
-            document.getElementById("split1-color").value = colors.split1;
-            document.getElementById("split2-color").value = colors.split2;
+            document.getElementById("highlight1-color").value = colors.highlight1;
+            document.getElementById("highlight2-color").value = defaultColors.highlight2;
+            document.getElementById("highlight3-color").value = defaultColors.highlight3;
             document.getElementById("element-font-color").value = fontColors.element;
             document.getElementById("index-font-color").value = fontColors.index;
             document.getElementById("element-font-size").value = state.fontSizes.element;
@@ -416,7 +417,7 @@
         const state = {
             arrayStates: arrayStates.map(arr => ({
                 elements: arr.elements,
-                highlightedIndices: Array.from(arr.highlightedIndices)
+                highlights: Array.from(arr.highlights.entries())
             })),
             arrayNames,
             colors,
@@ -435,15 +436,15 @@
     function resetToDefault() {
         arrayStates = [{
             elements: [1, 2, 3, 4, 5],
-            highlightedIndices: new Set()
+            highlights: new Map()
         }];
         arrayNames = ["Array 1"];
         colors = {...defaultColors};
         fontColors = {...defaultFontColors};
         document.getElementById("base-color").value = defaultColors.base;
-        document.getElementById("highlight-color").value = defaultColors.highlight;
-        document.getElementById("split1-color").value = defaultColors.split1;
-        document.getElementById("split2-color").value = defaultColors.split2;
+        document.getElementById("highlight1-color").value = defaultColors.highlight1;
+        document.getElementById("highlight2-color").value = defaultColors.highlight2;
+        document.getElementById("highlight3-color").value = defaultColors.highlight3;
         document.getElementById("element-font-color").value = defaultFontColors.element;
         document.getElementById("index-font-color").value = defaultFontColors.index;
         document.getElementById("element-font-size").value = defaultFontSizes.element;
@@ -470,7 +471,7 @@
         const newArray = parseArrayInput(input);
         arrayStates.push({
             elements: newArray,
-            highlightedIndices: new Set()
+            highlights: new Map()
         });
         arrayNames.push(`Array ${arrayStates.length}`);  // Add a default name
         updateArrayList();
@@ -509,14 +510,9 @@
         const newArrayString = document.getElementById(`edit-array-${index}`).value;
         const newArray = parseArrayInput(newArrayString);
 
-        // Preserve highlighted indices that are still valid in the new array
-        const newHighlightedIndices = new Set(
-            [...arrayStates[index].highlightedIndices].filter(i => i < newArray.length)
-        );
-
         arrayStates[index] = {
             elements: newArray,
-            highlightedIndices: newHighlightedIndices
+            highlights: new Map()
         };
 
         updateArrayList();
@@ -535,37 +531,52 @@
         saveState();
     }
 
-    function splitArrays() {
-        const splitIndex = parseInt(document.getElementById("split-index").value);
-        if (isNaN(splitIndex) || splitIndex < 0) {
-            alert("Please enter a valid split index");
-            return;
-        }
-        const selectedArrays = getSelectedArrays();
-        selectedArrays.forEach(index => {
-            if (splitIndex < arrayStates[index].elements.length) {
-                for (let i = 0; i < arrayStates[index].elements.length; i++) {
-                    if (i < splitIndex) {
-                        arrayStates[index].highlightedIndices.add(i);
-                    } else {
-                        arrayStates[index].highlightedIndices.delete(i);
-                    }
-                }
-            }
-        });
-        drawArrays();
+    function showElementMenu(event, arrayIndex, elementIndex, rect) {
+        const menu = document.getElementById('element-menu');
+        menu.style.display = 'block';
+        menu.style.left = `${rect.left + window.scrollX}px`;
+        menu.style.top = `${rect.bottom + window.scrollY}px`;
+        currentArrayIndex = arrayIndex;
+        currentElementIndex = elementIndex;
+
+        document.getElementById('highlight1-button').style.backgroundColor = colors.highlight1;
+        document.getElementById('highlight2-button').style.backgroundColor = colors.highlight2;
+        document.getElementById('highlight3-button').style.backgroundColor = colors.highlight3;
+
+        adjustMenuPosition(document.getElementById('element-menu'));
     }
 
-    function getSelectedArrays() {
-        return Array.from(document.querySelectorAll("#array-list input[type='checkbox']:checked"))
-            .map(checkbox => parseInt(checkbox.id.split("-")[1]));
+    function hideElementMenu() {
+        document.getElementById('element-menu').style.display = 'none';
+    }
+
+    function updateElement() {
+        arrayStates[currentArrayIndex].elements[currentElementIndex] = document.getElementById('edit-element-input').value;
+        hideElementMenu();
+        updateArrayList();
+        drawArrays();
+        saveState();
+    }
+
+    function setHighlight(type) {
+        arrayStates[currentArrayIndex].highlights.set(currentElementIndex, type);
+        hideElementMenu();
+        drawArrays();
+        saveState();
+    }
+
+    function removeHighlight() {
+        arrayStates[currentArrayIndex].highlights.delete(currentElementIndex);
+        hideElementMenu();
+        drawArrays();
+        saveState();
     }
 
     function updateColors() {
         colors.base = document.getElementById("base-color").value;
-        colors.highlight = document.getElementById("highlight-color").value;
-        colors.split1 = document.getElementById("split1-color").value;
-        colors.split2 = document.getElementById("split2-color").value;
+        colors.highlight1 = document.getElementById("highlight1-color").value;
+        colors.highlight2 = document.getElementById("highlight2-color").value;
+        colors.highlight3 = document.getElementById("highlight3-color").value;
         drawArrays();
     }
 
@@ -600,9 +611,9 @@
 
     function resetArraySettings() {
         document.getElementById("base-color").value = defaultColors.base;
-        document.getElementById("highlight-color").value = defaultColors.highlight;
-        document.getElementById("split1-color").value = defaultColors.split1;
-        document.getElementById("split2-color").value = defaultColors.split2;
+        document.getElementById("highlight1-color").value = defaultColors.highlight1;
+        document.getElementById("highlight2-color").value = defaultColors.highlight2;
+        document.getElementById("highlight3-color").value = defaultColors.highlight3;
         updateColors();
     }
 
@@ -660,6 +671,27 @@
     // Update the event listener for the "Show Indexes" checkbox
     document.getElementById("show-indexes").addEventListener("change", drawArrays);
 
+    // Add an event listener to hide the menu when clicking outside
+    document.addEventListener('click', function (event) {
+        const menu = document.getElementById('element-menu');
+        if (!menu.contains(event.target) && !event.target.classList.contains('array-element')) {
+            hideElementMenu();
+        }
+    });
+
+    function adjustMenuPosition(menu) {
+        const rect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        if (rect.right > viewportWidth) {
+            menu.style.left = `${viewportWidth - rect.width}px`;
+        }
+        if (rect.bottom > viewportHeight) {
+            menu.style.top = `${parseInt(menu.style.top) - rect.height - ELEMENT_SIZE}px`;
+        }
+    }
+
     // Load state when the page loads
     window.onload = function () {
         loadState();
@@ -667,5 +699,14 @@
         drawArrays();
     };
 </script>
+<div id="element-menu"
+     style="display: none; position: absolute; background-color: #444; border: 1px solid #666; border-radius: 4px; padding: 10px;">
+    <label for="edit-element-input"></label><input type="text" id="edit-element-input" placeholder="Edit element">
+    <button onclick="updateElement()">Update</button>
+    <button id="highlight1-button" class="highlight-button" onclick="setHighlight(1)">Highlight 1</button>
+    <button id="highlight2-button" class="highlight-button" onclick="setHighlight(2)">Highlight 2</button>
+    <button id="highlight3-button" class="highlight-button" onclick="setHighlight(3)">Highlight 3</button>
+    <button onclick="removeHighlight()">Remove Highlight</button>
+</div>
 </body>
 </html>
