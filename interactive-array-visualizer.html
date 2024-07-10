@@ -58,10 +58,11 @@
             color: white;
             border: none;
             border-radius: 4px;
+            transition: filter 0.3s ease;
         }
 
         button:hover {
-            background-color: #45a049;
+            filter: brightness(85%);
         }
 
         input[type="text"], input[type="number"] {
@@ -160,10 +161,61 @@
             flex-grow: 1;
         }
 
-        .highlight-button {
+        #element-menu {
+            display: none;
+            position: absolute;
+            background-color: #444;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 10px;
+            width: 160px;
+        }
+
+        #element-menu input,
+        #element-menu button {
             width: 100%;
             margin-bottom: 5px;
-            padding: 8px 16px;
+            box-sizing: border-box;
+        }
+
+        #element-menu input {
+            padding: 5px;
+        }
+
+        .highlight-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .highlight-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .highlight-button {
+            flex: 1;
+            margin: 0 2px;
+            padding: 5px;
+            font-size: 12px;
+            border: none;
+            cursor: pointer;
+            transition: filter 0.3s ease;
+        }
+
+        .highlight-button:hover {
+            filter: brightness(85%);
+        }
+
+        #remove-button-color {
+            background-color: #d9534f;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        #remove-button-color:hover {
+            background-color: #c9302c; /* Darker shade for hover */
         }
     </style>
 </head>
@@ -252,7 +304,7 @@
     </div>
     <div class="control-section">
         <div class="section-title">State Management</div>
-        <button onclick="resetToDefault()">Reset to Default</button>
+        <button id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
     </div>
 </div>
 
@@ -494,7 +546,7 @@
             <div class="array-edit">
                 <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)">
                 <button onclick="editArray(${index})">Edit</button>
-                <button onclick="removeArray(${index})">Remove</button>
+                <button id="remove-button-color" onclick="removeArray(${index})">Remove</button>
             </div>
         `;
             arrayList.appendChild(arrayItem);
@@ -534,16 +586,29 @@
     function showElementMenu(event, arrayIndex, elementIndex, rect) {
         const menu = document.getElementById('element-menu');
         menu.style.display = 'block';
-        menu.style.left = `${rect.left + window.scrollX}px`;
-        menu.style.top = `${rect.bottom + window.scrollY}px`;
+
+        // Get the menu's width after it's displayed
+        const menuWidth = menu.offsetWidth;
+
+        // Calculate the left position to center the menu
+        const leftPosition = rect.left + (rect.width - menuWidth) / 2;
+
+        // Ensure the menu doesn't go off-screen to the left
+        const adjustedLeftPosition = Math.max(0, leftPosition);
+
+        menu.style.left = `${adjustedLeftPosition}px`;
+        menu.style.top = `${rect.bottom + 5}px`; // 5px gap between element and menu
+
         currentArrayIndex = arrayIndex;
         currentElementIndex = elementIndex;
+        document.getElementById('edit-element-input').value = arrayStates[arrayIndex].elements[elementIndex];
 
+        // Update highlight button colors
         document.getElementById('highlight1-button').style.backgroundColor = colors.highlight1;
         document.getElementById('highlight2-button').style.backgroundColor = colors.highlight2;
         document.getElementById('highlight3-button').style.backgroundColor = colors.highlight3;
 
-        adjustMenuPosition(document.getElementById('element-menu'));
+        adjustMenuPosition(menu);
     }
 
     function hideElementMenu() {
@@ -699,14 +764,16 @@
         drawArrays();
     };
 </script>
-<div id="element-menu"
-     style="display: none; position: absolute; background-color: #444; border: 1px solid #666; border-radius: 4px; padding: 10px;">
+<div id="element-menu">
     <label for="edit-element-input"></label><input type="text" id="edit-element-input" placeholder="Edit element">
     <button onclick="updateElement()">Update</button>
-    <button id="highlight1-button" class="highlight-button" onclick="setHighlight(1)">Highlight 1</button>
-    <button id="highlight2-button" class="highlight-button" onclick="setHighlight(2)">Highlight 2</button>
-    <button id="highlight3-button" class="highlight-button" onclick="setHighlight(3)">Highlight 3</button>
-    <button onclick="removeHighlight()">Remove Highlight</button>
+
+    <div class="highlight-buttons">
+        <button id="highlight1-button" class="highlight-button" onclick="setHighlight(1)">H1</button>
+        <button id="highlight2-button" class="highlight-button" onclick="setHighlight(2)">H2</button>
+        <button id="highlight3-button" class="highlight-button" onclick="setHighlight(3)">H3</button>
+    </div>
+    <button id="remove-button-color" onclick="removeHighlight()">Remove Highlight</button>
 </div>
 </body>
 </html>
