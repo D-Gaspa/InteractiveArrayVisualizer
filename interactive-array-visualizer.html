@@ -265,6 +265,7 @@
         <div style="display: none;">
             <div class="array-item"></div>
             <div class="array-name"></div>
+            <div class="array-item hidden"></div>
         </div>
     </div>
     <div class="divisor"></div>
@@ -321,6 +322,14 @@
         <div class="checkbox-control">
             <input type="checkbox" id="show-up-arrows" onchange="drawArrays()">
             <label for="show-up-arrows">Show Up Arrows</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-top-arrows" onchange="drawArrays()">
+            <label for="show-top-arrows">Show Top Arrows</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-bottom-arrows" onchange="drawArrays()">
+            <label for="show-bottom-arrows">Show Bottom Arrows</label>
         </div>
         <button onclick="removeArrowLabels()">Remove Arrow Labels</button>
     </div>
@@ -406,12 +415,16 @@
     let showDownArrows = false;
     let showUpArrows = false;
     let arrowColor = defaultArrowColor;
+    let topArrowLabels = {up: "", down: ""};
+    let bottomArrowLabels = {up: "", down: ""};
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
         const showNames = document.getElementById("show-names").checked;
         const showDownArrows = document.getElementById("show-down-arrows").checked;
         const showUpArrows = document.getElementById("show-up-arrows").checked;
+        const showTopArrows = document.getElementById("show-top-arrows").checked;
+        const showBottomArrows = document.getElementById("show-bottom-arrows").checked;
         const numArrays = arrayStates.length;
         const numHiddenArrays = arrayStates.filter(state => state.isHidden).length;
         const totalNumArrays = numArrays - numHiddenArrays;
@@ -428,6 +441,8 @@
         if (showNames) totalHeight += (totalNumArrays * 20) - 10;
         if (showIndexes) totalHeight += totalNumArrays * 25;
         if ((showDownArrows || showUpArrows) && totalNumArrays > 1) totalHeight += (totalNumArrays - 1) * 44;
+        if (showTopArrows && (showUpArrows || showDownArrows)) totalHeight += 44;
+        if (showBottomArrows && (showUpArrows || showDownArrows)) totalHeight += 44;
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -446,9 +461,16 @@
         const showNames = document.getElementById("show-names").checked;
         const showDownArrows = document.getElementById("show-down-arrows").checked;
         const showUpArrows = document.getElementById("show-up-arrows").checked;
+        const showTopArrows = document.getElementById("show-top-arrows").checked;
+        const showBottomArrows = document.getElementById("show-bottom-arrows").checked;
 
         let cumulativeHeight = margin.top;
         let maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
+
+        if (showTopArrows) {
+            drawArrow(totalWidth / 2, cumulativeHeight, totalWidth / 2, cumulativeHeight + 30, -1, showDownArrows, showUpArrows);
+            cumulativeHeight += 60
+        }
 
         arrayStates.forEach((state, arrayIndex) => {
             if (state.isHidden) return;
@@ -542,6 +564,12 @@
                 cumulativeHeight += ARRAY_VERTICAL_MARGIN;
             }
         });
+
+        if (showBottomArrows) {
+            cumulativeHeight += 10;
+            drawArrow(totalWidth / 2, cumulativeHeight, totalWidth / 2, cumulativeHeight + 30, arrayStates.length, showDownArrows, showUpArrows);
+            cumulativeHeight += 34;
+        }
 
         changeFontSize();
     }
@@ -643,6 +671,69 @@
                 .attr("fill", arrowColor)
         }
 
+        if (fromIndex === -1 || fromIndex === arrayStates.length) {
+            if (topArrowLabels.down || topArrowLabels.up || bottomArrowLabels.down || bottomArrowLabels.up) {
+                if (showBothArrows) {
+                    let offset = arrowOffset;
+                    let text = "";
+                    if (fromIndex === -1) {
+                        text = topArrowLabels.down;
+                    } else if (fromIndex === arrayStates.length) {
+                        text = bottomArrowLabels.down;
+                    }
+                    arrowGroup.append("text")
+                        .attr("x", (startX + endX) / 2 - offset - 20)
+                        .attr("y", (startY + endY) / 2 + 5)
+                        .attr("text-anchor", "end")
+                        .attr("dominant-baseline", "right")
+                        .attr("fill", arrowColor)
+                        .style("font-family", "Arial, sans-serif")
+                        .style("shape-rendering", "crispEdges")
+                        .text(text);
+
+                    if (fromIndex === -1) {
+                        text = topArrowLabels.up;
+                    } else if (fromIndex === arrayStates.length) {
+                        text = bottomArrowLabels.up;
+                    }
+                    arrowGroup.append("text")
+                        .attr("x", (startX + endX) / 2 + offset + 20)
+                        .attr("y", (startY + endY) / 2 + 5)
+                        .attr("text-anchor", "start")
+                        .attr("dominant-baseline", "left")
+                        .attr("fill", arrowColor)
+                        .style("font-family", "Arial, sans-serif")
+                        .style("shape-rendering", "crispEdges")
+                        .text(text);
+                } else {
+                    let text = "";
+                    if (showUpArrows) {
+                        if (fromIndex === -1) {
+                            text = topArrowLabels.up;
+                        } else if (fromIndex === arrayStates.length) {
+                            text = bottomArrowLabels.up;
+                        }
+                    } else if (showDownArrows) {
+                        if (fromIndex === -1) {
+                            text = topArrowLabels.down;
+                        } else if (fromIndex === arrayStates.length) {
+                            text = bottomArrowLabels.down;
+                        }
+                    }
+                    arrowGroup.append("text")
+                        .attr("x", (startX + endX) / 2 + 20)
+                        .attr("y", (startY + endY) / 2 + 5)
+                        .attr("text-anchor", "start")
+                        .attr("dominant-baseline", "right")
+                        .attr("fill", arrowColor)
+                        .style("font-family", "Arial, sans-serif")
+                        .style("shape-rendering", "crispEdges")
+                        .text(text);
+                }
+            }
+            return;
+        }
+
         if (arrayStates[fromIndex].arrowUpLabel || arrayStates[fromIndex].arrowDownLabel) {
             if (showBothArrows) {
                 let offset = arrowOffset;
@@ -685,114 +776,31 @@
 
     function updateArrowLabel() {
         const menu = document.getElementById('arrow-menu');
-        const arrowIndex = parseInt(menu.dataset.arrowIndex);
+        const arrowIndex = menu.dataset.arrowIndex;
         const direction = menu.dataset.arrowDirection;
         const newLabel = document.getElementById('arrow-label-input').value;
 
         if (direction === 'up') {
-            arrayStates[arrowIndex].arrowUpLabel = newLabel;
-        } else {
-            arrayStates[arrowIndex].arrowDownLabel = newLabel;
+            if (arrowIndex === '-1') {
+                topArrowLabels.up = newLabel;
+            } else if (arrowIndex === arrayStates.length.toString()) {
+                bottomArrowLabels.up = newLabel;
+            } else {
+                arrayStates[arrowIndex].arrowUpLabel = newLabel;
+            }
+        } else if (direction === 'down') {
+            if (arrowIndex === '-1') {
+                topArrowLabels.down = newLabel;
+            } else if (arrowIndex === arrayStates.length.toString()) {
+                bottomArrowLabels.down = newLabel;
+            } else {
+                arrayStates[arrowIndex].arrowDownLabel = newLabel;
+            }
         }
 
         drawArrays();
         saveState();
         hideArrowMenu();
-    }
-
-    // Load state from local storage or use default values
-    function loadState() {
-        const savedState = localStorage.getItem('arrayVisualizerState');
-        if (savedState) {
-            const state = JSON.parse(savedState);
-            arrayStates = state.arrayStates.map(arr => ({
-                elements: arr.elements,
-                highlights: new Map(arr.highlights || []),
-                isHidden: arr.isHidden,
-                arrowDownLabel: arr.arrowDownLabel,
-                arrowUpLabel: arr.arrowUpLabel
-            }));
-            arrayNames = state.arrayNames;
-            colors = state.colors;
-            fontColors = state.fontColors;
-            elementWidth = state.elementWidth || elementWidth;
-            document.getElementById("base-color").value = colors.base;
-            document.getElementById("highlight1-color").value = colors.highlight1;
-            document.getElementById("highlight2-color").value = colors.highlight2;
-            document.getElementById("highlight3-color").value = colors.highlight3;
-            document.getElementById("background-color").value = colors.backgroundColor;
-            document.getElementById("array-container").style.backgroundColor = colors.backgroundColor;
-            document.getElementById("element-font-color").value = fontColors.element;
-            document.getElementById("index-font-color").value = fontColors.index;
-            document.getElementById("element-font-size").value = state.fontSizes.element;
-            document.getElementById("index-font-size").value = state.fontSizes.index;
-            document.getElementById("show-indexes").checked = state.showIndexes;
-            document.getElementById("show-names").checked = state.showNames;
-            document.getElementById("show-down-arrows").checked = state.showDownArrows;
-            document.getElementById("show-up-arrows").checked = state.showUpArrows;
-            document.getElementById("arrow-color").value = state.arrowColor;
-            arrowColor = state.arrowColor || defaultArrowColor;
-        }
-    }
-
-    // Save current state to local storage
-    function saveState() {
-        const state = {
-            arrayStates: arrayStates.map(arr => ({
-                elements: arr.elements,
-                highlights: Array.from(arr.highlights.entries()),
-                isHidden: arr.isHidden,
-                arrowDownLabel: arr.arrowDownLabel,
-                arrowUpLabel: arr.arrowUpLabel
-            })),
-            arrayNames,
-            colors,
-            fontColors,
-            elementWidth,
-            fontSizes: {
-                element: document.getElementById("element-font-size").value,
-                index: document.getElementById("index-font-size").value
-            },
-            showIndexes: document.getElementById("show-indexes").checked,
-            showNames: document.getElementById("show-names").checked,
-            showDownArrows: document.getElementById("show-down-arrows").checked,
-            showUpArrows: document.getElementById("show-up-arrows").checked,
-            arrowColor: arrowColor
-        };
-        localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
-    }
-
-    // Reset to default state
-    function resetToDefault() {
-        arrayStates = [{
-            elements: [1, 2, 3, 4, 5],
-            highlights: new Map(),
-            isHidden: false,
-            arrowDownLabel: "",
-            arrowUpLabel: ""
-        }];
-        arrayNames = ["Array 1"];
-        colors = {...defaultColors};
-        fontColors = {...defaultFontColors};
-        elementWidth = 80;
-        document.getElementById("base-color").value = defaultColors.base;
-        document.getElementById("highlight1-color").value = defaultColors.highlight1;
-        document.getElementById("highlight2-color").value = defaultColors.highlight2;
-        document.getElementById("highlight3-color").value = defaultColors.highlight3;
-        document.getElementById("background-color").value = defaultColors.backgroundColor;
-        document.getElementById("array-container").style.backgroundColor = defaultColors.backgroundColor;
-        document.getElementById("element-font-color").value = defaultFontColors.element;
-        document.getElementById("index-font-color").value = defaultFontColors.index;
-        document.getElementById("element-font-size").value = defaultFontSizes.element;
-        document.getElementById("index-font-size").value = defaultFontSizes.index;
-        document.getElementById("show-indexes").checked = true;
-        document.getElementById("show-names").checked = true;
-        document.getElementById("show-down-arrows").checked = false;
-        document.getElementById("show-up-arrows").checked = false;
-        document.getElementById("arrow-color").value = defaultArrowColor;
-        arrowColor = defaultArrowColor;
-        updateArrayList();
-        drawArrays();
     }
 
     function parseArrayInput(input) {
@@ -843,9 +851,9 @@
         });
 
         // Initialize Sortable
-            const sortable = new Sortable(arrayList, {
-                animation: 150
-            });
+        const sortable = new Sortable(arrayList, {
+            animation: 150
+        });
 
         // Add event listener for the end of sorting
         sortable.option("onEnd", function (evt) {
@@ -927,7 +935,23 @@
         menu.style.top = `${event.pageY}px`;
 
         const labelInput = document.getElementById('arrow-label-input');
-        labelInput.value = direction === 'up' ? (arrayStates[arrowIndex].arrowUpLabel || '') : (arrayStates[arrowIndex].arrowDownLabel || '');
+        if (direction === "up") {
+            if (arrowIndex === -1) {
+                labelInput.value = topArrowLabels.up || '';
+            } else if (arrowIndex === arrayStates.length) {
+                labelInput.value = bottomArrowLabels.up || '';
+            } else {
+                labelInput.value = arrayStates[arrowIndex].arrowUpLabel || '';
+            }
+        } else if (direction === "down") {
+            if (arrowIndex === -1) {
+                labelInput.value = topArrowLabels.down || '';
+            } else if (arrowIndex === arrayStates.length) {
+                labelInput.value = bottomArrowLabels.down || '';
+            } else {
+                labelInput.value = arrayStates[arrowIndex].arrowDownLabel || '';
+            }
+        }
 
         // Store the current arrow index and direction
         menu.dataset.arrowIndex = arrowIndex;
@@ -1172,6 +1196,109 @@
         updateArrayList();
         drawArrays();
     };
+
+    // Load state from local storage or use default values
+    function loadState() {
+        const savedState = localStorage.getItem('arrayVisualizerState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            arrayStates = state.arrayStates.map(arr => ({
+                elements: arr.elements,
+                highlights: new Map(arr.highlights || []),
+                isHidden: arr.isHidden,
+                arrowDownLabel: arr.arrowDownLabel,
+                arrowUpLabel: arr.arrowUpLabel
+            }));
+            arrayNames = state.arrayNames;
+            colors = state.colors;
+            fontColors = state.fontColors;
+            elementWidth = state.elementWidth || elementWidth;
+            document.getElementById("base-color").value = colors.base;
+            document.getElementById("highlight1-color").value = colors.highlight1;
+            document.getElementById("highlight2-color").value = colors.highlight2;
+            document.getElementById("highlight3-color").value = colors.highlight3;
+            document.getElementById("background-color").value = colors.backgroundColor;
+            document.getElementById("array-container").style.backgroundColor = colors.backgroundColor;
+            document.getElementById("element-font-color").value = fontColors.element;
+            document.getElementById("index-font-color").value = fontColors.index;
+            document.getElementById("element-font-size").value = state.fontSizes.element;
+            document.getElementById("index-font-size").value = state.fontSizes.index;
+            document.getElementById("show-indexes").checked = state.showIndexes;
+            document.getElementById("show-names").checked = state.showNames;
+            document.getElementById("show-down-arrows").checked = state.showDownArrows;
+            document.getElementById("show-up-arrows").checked = state.showUpArrows;
+            document.getElementById("arrow-color").value = state.arrowColor;
+            document.getElementById("show-top-arrows").checked = state.showTopArrows;
+            document.getElementById("show-bottom-arrows").checked = state.showBottomArrows;
+            arrowColor = state.arrowColor || defaultArrowColor;
+        }
+    }
+
+    // Save current state to local storage
+    function saveState() {
+        const state = {
+            arrayStates: arrayStates.map(arr => ({
+                elements: arr.elements,
+                highlights: Array.from(arr.highlights.entries()),
+                isHidden: arr.isHidden,
+                arrowDownLabel: arr.arrowDownLabel,
+                arrowUpLabel: arr.arrowUpLabel
+            })),
+            arrayNames,
+            colors,
+            fontColors,
+            elementWidth,
+            fontSizes: {
+                element: document.getElementById("element-font-size").value,
+                index: document.getElementById("index-font-size").value
+            },
+            showIndexes: document.getElementById("show-indexes").checked,
+            showNames: document.getElementById("show-names").checked,
+            showDownArrows: document.getElementById("show-down-arrows").checked,
+            showUpArrows: document.getElementById("show-up-arrows").checked,
+            arrowColor: arrowColor,
+            showTopArrows: document.getElementById("show-top-arrows").checked,
+            showBottomArrows: document.getElementById("show-bottom-arrows").checked
+        };
+        localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
+    }
+
+    // Reset to default state
+    function resetToDefault() {
+        arrayStates = [{
+            elements: [1, 2, 3, 4, 5],
+            highlights: new Map(),
+            isHidden: false,
+            arrowDownLabel: "",
+            arrowUpLabel: ""
+        }];
+        arrayNames = ["Array 1"];
+        colors = {...defaultColors};
+        fontColors = {...defaultFontColors};
+        elementWidth = 80;
+        document.getElementById("base-color").value = defaultColors.base;
+        document.getElementById("highlight1-color").value = defaultColors.highlight1;
+        document.getElementById("highlight2-color").value = defaultColors.highlight2;
+        document.getElementById("highlight3-color").value = defaultColors.highlight3;
+        document.getElementById("background-color").value = defaultColors.backgroundColor;
+        document.getElementById("array-container").style.backgroundColor = defaultColors.backgroundColor;
+        document.getElementById("element-font-color").value = defaultFontColors.element;
+        document.getElementById("index-font-color").value = defaultFontColors.index;
+        document.getElementById("element-font-size").value = defaultFontSizes.element;
+        document.getElementById("index-font-size").value = defaultFontSizes.index;
+        document.getElementById("show-indexes").checked = true;
+        document.getElementById("show-names").checked = true;
+        document.getElementById("show-down-arrows").checked = false;
+        document.getElementById("show-up-arrows").checked = false;
+        document.getElementById("arrow-color").value = defaultArrowColor;
+        document.getElementById("show-top-arrows").checked = false;
+        document.getElementById("show-bottom-arrows").checked = false;
+        arrowColor = defaultArrowColor;
+        topArrowLabels = {up: "", down: ""};
+        bottomArrowLabels = {up: "", down: ""};
+        updateArrayList();
+        drawArrays();
+    }
 </script>
 <div id="element-menu">
     <label for="edit-element-input"></label><input type="text" id="edit-element-input" placeholder="Edit element">
