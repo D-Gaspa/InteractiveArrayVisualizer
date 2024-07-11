@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Array Interactive Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         body {
@@ -78,7 +79,7 @@
             background-color: #3a3a3a;
             color: #e0e0e0;
             border: 1px solid #5a5a5a;
-            width: 195px;
+            width: 155px;
         }
 
         input[type="number"] {
@@ -160,6 +161,13 @@
             padding: 10px;
             background-color: #3a3a3a;
             border-radius: 4px;
+            margin-bottom: 5px;
+            cursor: move;
+        }
+
+        .array-item.hidden {
+            background-color: #2a2a2a;
+            opacity: 0.7;
         }
 
         .array-item input[type="checkbox"] {
@@ -177,6 +185,10 @@
 
         .array-edit input {
             flex-grow: 1;
+        }
+
+        .hide-show-button {
+            min-width: 60px;
         }
 
         #element-menu {
@@ -378,7 +390,10 @@
 
     let arrayStates = [{
         elements: [1, 2, 3, 4, 5],
-        highlights: new Map() // Map of index to highlight type (1, 2, or 3)
+        highlights: new Map(), // Map of index to highlight type (1, 2, or 3)
+        isHidden: false,
+        arrowDownLabel: "",
+        arrowUpLabel: "",
     }];
 
     const svg = d3.select("svg");
@@ -390,8 +405,6 @@
     let currentArrayIndex, currentElementIndex;
     let showDownArrows = false;
     let showUpArrows = false;
-    let arrowDownLabels = [];
-    let arrowUpLabels = [];
     let arrowColor = defaultArrowColor;
 
     function updateSVGSize() {
@@ -400,6 +413,8 @@
         const showDownArrows = document.getElementById("show-down-arrows").checked;
         const showUpArrows = document.getElementById("show-up-arrows").checked;
         const numArrays = arrayStates.length;
+        const numHiddenArrays = arrayStates.filter(state => state.isHidden).length;
+        const totalNumArrays = numArrays - numHiddenArrays;
         const maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
         // Update element width based on the maximum element size
         elementWidth = Math.max(...arrayStates.map(state => {
@@ -409,10 +424,10 @@
         const totalWidth = maxArrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
 
         let totalHeight = margin.top + margin.bottom;
-        totalHeight += numArrays * ELEMENT_HEIGHT + (numArrays - 1) * ARRAY_VERTICAL_MARGIN;
-        if (showNames) totalHeight += (numArrays * 20) - 10;
-        if (showIndexes) totalHeight += numArrays * 25;
-        if ((showDownArrows || showUpArrows) && numArrays > 1) totalHeight += (numArrays - 1) * 44;
+        totalHeight += totalNumArrays * ELEMENT_HEIGHT + (totalNumArrays - 1) * ARRAY_VERTICAL_MARGIN;
+        if (showNames) totalHeight += (totalNumArrays * 20) - 10;
+        if (showIndexes) totalHeight += totalNumArrays * 25;
+        if ((showDownArrows || showUpArrows) && totalNumArrays > 1) totalHeight += (totalNumArrays - 1) * 44;
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -436,6 +451,7 @@
         let maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
 
         arrayStates.forEach((state, arrayIndex) => {
+            if (state.isHidden) return;
             const arrayWidth = calculateArrayWidth(state.elements.length);
             const startX = (totalWidth - arrayWidth) / 2;
 
@@ -510,7 +526,8 @@
                 cumulativeHeight += 25;
             }
 
-            if ((showDownArrows || showUpArrows) && arrayIndex < arrayStates.length - 1) {
+            let nextArrayIndex = arrayIndex + 1;
+            if ((showDownArrows || showUpArrows) && arrayIndex < arrayStates.length - 1 && !arrayStates[nextArrayIndex].isHidden) {
                 cumulativeHeight += 10;
                 const startY = cumulativeHeight;
                 const endY = cumulativeHeight + 30;
@@ -626,7 +643,7 @@
                 .attr("fill", arrowColor)
         }
 
-        if (arrowDownLabels[fromIndex] || arrowUpLabels[fromIndex]) {
+        if (arrayStates[fromIndex].arrowUpLabel || arrayStates[fromIndex].arrowDownLabel) {
             if (showBothArrows) {
                 let offset = arrowOffset;
                 arrowGroup.append("text")
@@ -637,7 +654,7 @@
                     .attr("fill", arrowColor)
                     .style("font-family", "Arial, sans-serif")
                     .style("shape-rendering", "crispEdges")
-                    .text(arrowDownLabels[fromIndex]);
+                    .text(arrayStates[fromIndex].arrowDownLabel);
 
                 arrowGroup.append("text")
                     .attr("x", (startX + endX) / 2 + offset + 20)
@@ -647,12 +664,11 @@
                     .attr("fill", arrowColor)
                     .style("font-family", "Arial, sans-serif")
                     .style("shape-rendering", "crispEdges")
-                    .text(arrowUpLabels[fromIndex]);
-            }
-            else {
+                    .text(arrayStates[fromIndex].arrowUpLabel);
+            } else {
                 let text = "";
-                if (showDownArrows) text = arrowDownLabels[fromIndex];
-                else if (showUpArrows) text = arrowUpLabels[fromIndex];
+                if (showDownArrows) text = arrayStates[fromIndex].arrowDownLabel;
+                else if (showUpArrows) text = arrayStates[fromIndex].arrowUpLabel;
 
                 arrowGroup.append("text")
                     .attr("x", (startX + endX) / 2 + 20)
@@ -674,9 +690,9 @@
         const newLabel = document.getElementById('arrow-label-input').value;
 
         if (direction === 'up') {
-            arrowUpLabels[arrowIndex] = newLabel;
+            arrayStates[arrowIndex].arrowUpLabel = newLabel;
         } else {
-            arrowDownLabels[arrowIndex] = newLabel;
+            arrayStates[arrowIndex].arrowDownLabel = newLabel;
         }
 
         drawArrays();
@@ -691,7 +707,10 @@
             const state = JSON.parse(savedState);
             arrayStates = state.arrayStates.map(arr => ({
                 elements: arr.elements,
-                highlights: new Map(arr.highlights || [])
+                highlights: new Map(arr.highlights || []),
+                isHidden: arr.isHidden,
+                arrowDownLabel: arr.arrowDownLabel,
+                arrowUpLabel: arr.arrowUpLabel
             }));
             arrayNames = state.arrayNames;
             colors = state.colors;
@@ -713,8 +732,6 @@
             document.getElementById("show-up-arrows").checked = state.showUpArrows;
             document.getElementById("arrow-color").value = state.arrowColor;
             arrowColor = state.arrowColor || defaultArrowColor;
-            arrowDownLabels = state.arrowDownLabels || [];
-            arrowUpLabels = state.arrowUpLabels || [];
         }
     }
 
@@ -723,7 +740,10 @@
         const state = {
             arrayStates: arrayStates.map(arr => ({
                 elements: arr.elements,
-                highlights: Array.from(arr.highlights.entries())
+                highlights: Array.from(arr.highlights.entries()),
+                isHidden: arr.isHidden,
+                arrowDownLabel: arr.arrowDownLabel,
+                arrowUpLabel: arr.arrowUpLabel
             })),
             arrayNames,
             colors,
@@ -737,8 +757,6 @@
             showNames: document.getElementById("show-names").checked,
             showDownArrows: document.getElementById("show-down-arrows").checked,
             showUpArrows: document.getElementById("show-up-arrows").checked,
-            arrowDownLabels: arrowDownLabels,
-            arrowUpLabels: arrowUpLabels,
             arrowColor: arrowColor
         };
         localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
@@ -748,7 +766,10 @@
     function resetToDefault() {
         arrayStates = [{
             elements: [1, 2, 3, 4, 5],
-            highlights: new Map()
+            highlights: new Map(),
+            isHidden: false,
+            arrowDownLabel: "",
+            arrowUpLabel: ""
         }];
         arrayNames = ["Array 1"];
         colors = {...defaultColors};
@@ -770,8 +791,6 @@
         document.getElementById("show-up-arrows").checked = false;
         document.getElementById("arrow-color").value = defaultArrowColor;
         arrowColor = defaultArrowColor;
-        arrowDownLabels = [];
-        arrowUpLabels = [];
         updateArrayList();
         drawArrays();
     }
@@ -805,20 +824,50 @@
         arrayList.innerHTML = "";
         arrayStates.forEach((state, index) => {
             const arrayItem = document.createElement("div");
-            arrayItem.className = "array-item";
+            arrayItem.className = `array-item${state.isHidden ? ' hidden' : ''}`;
+            arrayItem.dataset.index = index.toString();
             arrayItem.innerHTML = `
-            <div class="checkbox-control">
-                <input type="checkbox" id="array-${index}" checked>
-                <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
-            </div>
-            <div class="array-edit">
-                <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)"
-                value="${state.elements.map(String).join(", ")}" onchange="editArray(${index})">
-                <button onclick="duplicateArray(${index})">Duplicate</button>
-                <button id="remove-button-color" onclick="removeArray(${index})">Remove</button>
-            </div>
-        `;
+                    <div class="checkbox-control">
+                        <input type="checkbox" id="array-${index}" ${state.isHidden ? '' : 'checked'}>
+                        <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
+                    </div>
+                    <div class="array-edit">
+                        <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)"
+                        value="${state.elements.map(String).join(", ")}" onchange="editArray(${index})">
+                        <button class="hide-show-button" onclick="hideOrShowArray(${index})">${state.isHidden ? 'Show' : 'Hide'}</button>
+                        <button onclick="duplicateArray(${index})">Duplicate</button>
+                        <button id="remove-button-color" onclick="removeArray(${index})">Remove</button>
+                    </div>
+                `;
             arrayList.appendChild(arrayItem);
+        });
+
+        // Initialize Sortable
+            const sortable = new Sortable(arrayList, {
+                animation: 150
+            });
+
+        // Add event listener for the end of sorting
+        sortable.option("onEnd", function (evt) {
+            const oldIndex = parseInt(evt.item.dataset.index);
+            const newIndex = Array.from(arrayList.children).indexOf(evt.item);
+            if (oldIndex !== newIndex) {
+                // Reorder arrayStates and arrayNames
+                const [movedArrayState] = arrayStates.splice(oldIndex, 1);
+                const [movedArrayName] = arrayNames.splice(oldIndex, 1);
+                arrayStates.splice(newIndex, 0, movedArrayState);
+                arrayNames.splice(newIndex, 0, movedArrayName);
+
+                // Update the data-index attributes
+                Array.from(arrayList.children).forEach((item, index) => {
+                    item.dataset.index = index.toString();
+                });
+
+                // Redraw arrays and save state
+                drawArrays();
+                saveState();
+                updateArrayList();  // Refresh the list to update indexes
+            }
         });
     }
 
@@ -840,20 +889,26 @@
         drawArrays();
     }
 
+    function hideOrShowArray(index) {
+        arrayStates[index].isHidden = !arrayStates[index].isHidden;
+        updateArrayList();
+        drawArrays();
+        saveState();
+    }
+
     function duplicateArray(index) {
         const newArray = arrayStates[index];
         arrayStates.push({
             elements: [...newArray.elements],
             highlights: new Map(newArray.highlights)
         });
-        arrayNames.push(`${arrayNames[index]} (Copy)`);
+        arrayNames.push(`${arrayNames[index]}`);
         updateArrayList();
         drawArrays();
     }
 
     function removeArray(index) {
         if (arrayStates.length > 1) {
-            arrowDownLabels.splice(index, 1);
             arrayStates.splice(index, 1);
             arrayNames.splice(index, 1);
             updateArrayList();
@@ -872,7 +927,7 @@
         menu.style.top = `${event.pageY}px`;
 
         const labelInput = document.getElementById('arrow-label-input');
-        labelInput.value = direction === 'up' ? (arrowUpLabels[arrowIndex] || '') : (arrowDownLabels[arrowIndex] || '');
+        labelInput.value = direction === 'up' ? (arrayStates[arrowIndex].arrowUpLabel || '') : (arrayStates[arrowIndex].arrowDownLabel || '');
 
         // Store the current arrow index and direction
         menu.dataset.arrowIndex = arrowIndex;
@@ -1006,8 +1061,10 @@
     }
 
     function removeArrowLabels() {
-        arrowDownLabels = [];
-        arrowUpLabels = [];
+        arrayStates.forEach(state => {
+            state.arrowDownLabel = "";
+            state.arrowUpLabel = "";
+        });
         drawArrays();
         saveState();
     }
