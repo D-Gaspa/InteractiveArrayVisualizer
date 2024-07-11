@@ -266,10 +266,6 @@
             <input type="checkbox" id="show-names" checked onchange="drawArrays()">
             <label for="show-names">Show Array Names</label>
         </div>
-        <div class="checkbox-control">
-            <input type="checkbox" id="show-arrows" onchange="drawArrays()">
-            <label for="show-arrows">Show Arrows</label>
-        </div>
     </div>
     <div class="divisor"></div>
     <div class="control-section">
@@ -302,6 +298,19 @@
             <label for="arrow-color">Arrow:</label>
             <input type="color" id="arrow-color" value="#FFFFFF" onchange="updateColors()">
         </div>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Arrow Options</div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-down-arrows" onchange="drawArrays()">
+            <label for="show-down-arrows">Show Down Arrows</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-up-arrows" onchange="drawArrays()">
+            <label for="show-up-arrows">Show Up Arrows</label>
+        </div>
+        <button onclick="removeArrowLabels()">Remove Arrow Labels</button>
     </div>
     <div class="divisor"></div>
     <div class="control-section">
@@ -379,14 +388,17 @@
     let fontColors = {...defaultFontColors};
     let arrayNames = ["Array 1"];
     let currentArrayIndex, currentElementIndex;
-    let showArrows = false;
-    let arrowLabels = [];
+    let showDownArrows = false;
+    let showUpArrows = false;
+    let arrowDownLabels = [];
+    let arrowUpLabels = [];
     let arrowColor = defaultArrowColor;
 
     function updateSVGSize() {
         const showIndexes = document.getElementById("show-indexes").checked;
         const showNames = document.getElementById("show-names").checked;
-        const showArrows = document.getElementById("show-arrows").checked;
+        const showDownArrows = document.getElementById("show-down-arrows").checked;
+        const showUpArrows = document.getElementById("show-up-arrows").checked;
         const numArrays = arrayStates.length;
         const maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
         // Update element width based on the maximum element size
@@ -400,7 +412,7 @@
         totalHeight += numArrays * ELEMENT_HEIGHT + (numArrays - 1) * ARRAY_VERTICAL_MARGIN;
         if (showNames) totalHeight += (numArrays * 20) - 10;
         if (showIndexes) totalHeight += numArrays * 25;
-        if (showArrows && numArrays > 1) totalHeight += (numArrays - 1) * 40;
+        if ((showDownArrows || showUpArrows) && numArrays > 1) totalHeight += (numArrays - 1) * 40;
 
         d3.select("#array-container")
             .style("width", `${totalWidth}px`);
@@ -417,7 +429,8 @@
         const {totalWidth} = updateSVGSize();
         const showIndexes = document.getElementById("show-indexes").checked;
         const showNames = document.getElementById("show-names").checked;
-        const showArrows = document.getElementById("show-arrows").checked;
+        const showDownArrows = document.getElementById("show-down-arrows").checked;
+        const showUpArrows = document.getElementById("show-up-arrows").checked;
 
         let cumulativeHeight = margin.top;
         let maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
@@ -497,13 +510,13 @@
                 cumulativeHeight += 25;
             }
 
-            if (showArrows && arrayIndex < arrayStates.length - 1) {
+            if ((showDownArrows || showUpArrows) && arrayIndex < arrayStates.length - 1) {
                 cumulativeHeight += 10;
                 const startY = cumulativeHeight;
                 const endY = cumulativeHeight + 30;
                 const arrowWidth = Math.max(maxArrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100);
 
-                drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex);
+                drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex, showDownArrows, showUpArrows);
 
                 cumulativeHeight += 30;
             }
@@ -534,19 +547,60 @@
         return Math.max(80, textWidth + 2 * padding);
     }
 
-    function drawArrow(startX, startY, endX, endY, fromIndex) {
+    function drawArrow(startX, startY, endX, endY, fromIndex, showDownArrows, showUpArrows) {
         const arrowGroup = svg.append("g").attr("class", "arrow-group");
+        const arrowOffset = 15; // Offset from the center when both arrows are shown
 
-        // Draw the visible arrow
-        arrowGroup.append("path")
-            .attr("d", `M${startX},${startY} L${endX},${endY}`)
-            .attr("stroke", arrowColor)
-            .attr("stroke-width", 3)
-            .attr("marker-end", "url(#arrowhead)");
+        let downArrowX, upArrowX;
+        let showBothArrows = showDownArrows && showUpArrows;
 
-        if (!svg.select("#arrowhead").node()) {
+        if (showBothArrows) {
+            // Both arrows are shown, offset them from the center
+            downArrowX = (startX + endX) / 2 - arrowOffset;
+            upArrowX = (startX + endX) / 2 + arrowOffset;
+        } else {
+            // Only one arrow is shown, place it in the center
+            downArrowX = upArrowX = (startX + endX) / 2;
+        }
+
+        if (showDownArrows) {
+            // Draw down arrow
+            arrowGroup.append("path")
+                .attr("d", `M${downArrowX},${startY} L${downArrowX},${endY}`)
+                .attr("stroke", arrowColor)
+                .attr("stroke-width", 3)
+                .attr("marker-end", "url(#arrowhead-down)");
+
+            // Draw a wider, transparent path for easier clicking
+            arrowGroup.append("path")
+                .attr("d", `M${downArrowX},${startY} L${downArrowX},${endY}`)
+                .attr("stroke", "transparent")
+                .attr("stroke-width", 20)
+                .style("cursor", "pointer")
+                .on("click", (event) => showArrowMenu(event, fromIndex, "down"));
+        }
+
+        if (showUpArrows) {
+            // Draw up arrow
+            arrowGroup.append("path")
+                .attr("d", `M${upArrowX},${endY} L${upArrowX},${startY}`)
+                .attr("stroke", arrowColor)
+                .attr("stroke-width", 3)
+                .attr("marker-end", "url(#arrowhead-up)");
+
+            // Draw a wider, transparent path for easier clicking
+            arrowGroup.append("path")
+                .attr("d", `M${upArrowX},${endY} L${upArrowX},${startY}`)
+                .attr("stroke", "transparent")
+                .attr("stroke-width", 20)
+                .style("cursor", "pointer")
+                .on("click", (event) => showArrowMenu(event, fromIndex, "up"));
+        }
+
+        // Create arrowheads for both directions
+        if (!svg.select("#arrowhead-down").node()) {
             svg.append("defs").append("marker")
-                .attr("id", "arrowhead")
+                .attr("id", "arrowhead-down")
                 .attr("viewBox", "0 -5 10 10")
                 .attr("refX", 5)
                 .attr("refY", 0)
@@ -555,31 +609,66 @@
                 .attr("orient", "auto")
                 .append("path")
                 .attr("d", "M0,-5L10,0L0,5")
-                .attr("fill", arrowColor);
+                .attr("fill", arrowColor)
+                .on("click", () => showArrowMenu(fromIndex, "down"));
         }
 
-        // Draw a wider, transparent path for easier clicking
-        arrowGroup.append("path")
-            .attr("d", `M${startX},${startY} L${endX},${endY}`)
-            .attr("stroke", "transparent")
-            .attr("stroke-width", 20)
-            .style("cursor", "pointer")
-            .on("click", (event) => showArrowMenu(event, fromIndex));
-
-        if (arrowLabels[fromIndex]) {
-            arrowGroup.append("text")
-                .attr("x", (startX + endX) / 2 + 20)
-                .attr("y", (startY + endY) / 2 + 10)
-                .attr("text-anchor", "left")
+        if (!svg.select("#arrowhead-up").node()) {
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead-up")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 5)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto-start-reverse")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
                 .attr("fill", arrowColor)
-                .text(arrowLabels[fromIndex]);
+                .on("click", () => showArrowMenu(fromIndex, "up"));
+        }
+
+        if (arrowDownLabels[fromIndex] && showDownArrows) {
+            let offset = 0;
+            if (showUpArrows) offset = arrowOffset;
+            arrowGroup.append("text")
+                .attr("x", (startX + endX) / 2 - offset - 20)
+                .attr("y", (startY + endY) / 2)
+                .attr("text-anchor", "end")
+                .attr("dominant-baseline", "right")
+                .attr("fill", arrowColor)
+                .style("font-family", "Arial, sans-serif")
+                .style("shape-rendering", "crispEdges")
+                .text(arrowDownLabels[fromIndex]);
+        }
+
+        if (arrowUpLabels[fromIndex] && showUpArrows) {
+            let offset = 0;
+            if (showDownArrows) offset = arrowOffset;
+            arrowGroup.append("text")
+                .attr("x", (startX + endX) / 2 + offset + 20)
+                .attr("y", (startY + endY) / 2)
+                .attr("text-anchor", "start")
+                .attr("dominant-baseline", "left")
+                .attr("fill", arrowColor)
+                .style("font-family", "Arial, sans-serif")
+                .style("shape-rendering", "crispEdges")
+                .text(arrowUpLabels[fromIndex]);
         }
     }
 
     function updateArrowLabel() {
         const menu = document.getElementById('arrow-menu');
         const arrowIndex = parseInt(menu.dataset.arrowIndex);
-        arrowLabels[arrowIndex] = document.getElementById('arrow-label-input').value;
+        const direction = menu.dataset.arrowDirection;
+        const newLabel = document.getElementById('arrow-label-input').value;
+
+        if (direction === 'up') {
+            arrowUpLabels[arrowIndex] = newLabel;
+        } else {
+            arrowDownLabels[arrowIndex] = newLabel;
+        }
+
         drawArrays();
         saveState();
         hideArrowMenu();
@@ -610,10 +699,12 @@
             document.getElementById("index-font-size").value = state.fontSizes.index;
             document.getElementById("show-indexes").checked = state.showIndexes;
             document.getElementById("show-names").checked = state.showNames;
-            document.getElementById("show-arrows").checked = state.showArrows;
+            document.getElementById("show-down-arrows").checked = state.showDownArrows;
+            document.getElementById("show-up-arrows").checked = state.showUpArrows;
             document.getElementById("arrow-color").value = state.arrowColor;
             arrowColor = state.arrowColor || defaultArrowColor;
-            arrowLabels = state.arrowLabels || [];
+            arrowDownLabels = state.arrowDownLabels || [];
+            arrowUpLabels = state.arrowUpLabels || [];
         }
     }
 
@@ -634,8 +725,10 @@
             },
             showIndexes: document.getElementById("show-indexes").checked,
             showNames: document.getElementById("show-names").checked,
-            showArrows: document.getElementById("show-arrows").checked,
-            arrowLabels: arrowLabels,
+            showDownArrows: document.getElementById("show-down-arrows").checked,
+            showUpArrows: document.getElementById("show-up-arrows").checked,
+            arrowDownLabels: arrowDownLabels,
+            arrowUpLabels: arrowUpLabels,
             arrowColor: arrowColor
         };
         localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
@@ -663,10 +756,12 @@
         document.getElementById("index-font-size").value = defaultFontSizes.index;
         document.getElementById("show-indexes").checked = true;
         document.getElementById("show-names").checked = true;
-        document.getElementById("show-arrows").checked = false;
+        document.getElementById("show-down-arrows").checked = false;
+        document.getElementById("show-up-arrows").checked = false;
         document.getElementById("arrow-color").value = defaultArrowColor;
         arrowColor = defaultArrowColor;
-        arrowLabels = [];
+        arrowDownLabels = [];
+        arrowUpLabels = [];
         updateArrayList();
         drawArrays();
     }
@@ -748,6 +843,7 @@
 
     function removeArray(index) {
         if (arrayStates.length > 1) {
+            arrowDownLabels.splice(index, 1);
             arrayStates.splice(index, 1);
             arrayNames.splice(index, 1);
             updateArrayList();
@@ -758,17 +854,18 @@
         saveState();
     }
 
-    function showArrowMenu(event, arrowIndex) {
+    function showArrowMenu(event, arrowIndex, direction) {
         const menu = document.getElementById('arrow-menu');
         menu.style.display = 'block';
         menu.style.left = `${event.pageX}px`;
         menu.style.top = `${event.pageY}px`;
 
-        document.getElementById('arrow-label-input').value = arrowLabels[arrowIndex] || '';
-        document.getElementById('arrow-label-input').onchange = () => updateArrowLabel(arrowIndex);
+        const labelInput = document.getElementById('arrow-label-input');
+        labelInput.value = direction === 'up' ? (arrowUpLabels[arrowIndex] || '') : (arrowDownLabels[arrowIndex] || '');
 
-        // Store the current arrow index
+        // Store the current arrow index and direction
         menu.dataset.arrowIndex = arrowIndex;
+        menu.dataset.arrowDirection = direction;
     }
 
     function showElementMenu(event, arrayIndex, elementIndex, rect) {
@@ -897,6 +994,13 @@
         saveState();
     }
 
+    function removeArrowLabels() {
+        arrowDownLabels = [];
+        arrowUpLabels = [];
+        drawArrays();
+        saveState();
+    }
+
     function changeBackgroundColor() {
         document.getElementById("array-container").style.backgroundColor = document.getElementById("background-color").value;
         colors.backgroundColor = document.getElementById("background-color").value;
@@ -965,9 +1069,15 @@
         }
     });
 
-    // Add an event listener for the show-arrows checkbox
-    document.getElementById("show-arrows").addEventListener("change", function () {
-        showArrows = this.checked;
+    // Add an event listener for the arrow checkboxes
+    document.getElementById("show-down-arrows").addEventListener("change", function () {
+        showDownArrows = this.checked;
+        drawArrays();
+        saveState();
+    });
+
+    document.getElementById("show-up-arrows").addEventListener("change", function () {
+        showUpArrows = this.checked;
         drawArrays();
         saveState();
     });
