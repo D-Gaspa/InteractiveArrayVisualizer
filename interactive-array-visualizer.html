@@ -354,6 +354,8 @@
     <div class="divisor"></div>
     <div class="control-section">
         <div class="section-title">Export</div>
+        <label for="scale-factor">Scale Factor:</label>
+        <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
         <div class="color-picker">
             <label for="background-color">Background Color:</label>
             <input type="color" id="background-color" value="#2a2a2a" onchange="changeBackgroundColor()">
@@ -1105,7 +1107,7 @@
         const svgHeight = svgNode.height.baseVal.value;
 
         // Increase resolution
-        const scale = 2;
+        const scale = document.getElementById("scale-factor").value;
         const canvas = document.createElement("canvas");
         canvas.width = svgWidth * scale;
         canvas.height = svgHeight * scale;
@@ -1230,6 +1232,7 @@
             document.getElementById("arrow-color").value = state.arrowColor;
             document.getElementById("show-top-arrows").checked = state.showTopArrows;
             document.getElementById("show-bottom-arrows").checked = state.showBottomArrows;
+            document.getElementById("scale-factor").value = state.scaleFactor;
             arrowColor = state.arrowColor || defaultArrowColor;
         }
     }
@@ -1258,7 +1261,8 @@
             showUpArrows: document.getElementById("show-up-arrows").checked,
             arrowColor: arrowColor,
             showTopArrows: document.getElementById("show-top-arrows").checked,
-            showBottomArrows: document.getElementById("show-bottom-arrows").checked
+            showBottomArrows: document.getElementById("show-bottom-arrows").checked,
+            scaleFactor: document.getElementById("scale-factor").value
         };
         localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
     }
@@ -1293,6 +1297,7 @@
         document.getElementById("arrow-color").value = defaultArrowColor;
         document.getElementById("show-top-arrows").checked = false;
         document.getElementById("show-bottom-arrows").checked = false;
+        document.getElementById("scale-factor").value = 2;
         arrowColor = defaultArrowColor;
         topArrowLabels = {up: "", down: ""};
         bottomArrowLabels = {up: "", down: ""};
