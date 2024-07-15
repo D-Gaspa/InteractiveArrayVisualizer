@@ -265,6 +265,57 @@
             transform: scale(1.05);
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #333333;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            text-align: center;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #custom-modal-buttons {
+            margin-top: 15px;
+        }
+
+        #custom-modal-ok, #custom-modal-cancel {
+            margin: 0 10px;
+            padding: 5px 15px;
+            color: #eeeeee;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #custom-modal-ok {
+            background-color: #4CAF50;
+        }
+
+        #custom-modal-cancel {
+            background-color: #f44336;
+        }
+
+        #custom-modal-ok:hover {
+            background-color: #45a049;
+        }
+
+        #custom-modal-cancel:hover {
+            background-color: #da190b;
+        }
+
         .notification {
             background-color: #333333;
             border-left: 4px solid #007bff;
@@ -419,6 +470,17 @@
         <button class="delete-btn" id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
     </div>
     <div id="menu-wrapper" style="position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;"></div>
+
+    <div id="custom-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <p id="custom-modal-message"></p>
+            <div id="custom-modal-buttons">
+                <button id="custom-modal-ok">OK</button>
+                <button id="custom-modal-cancel" style="display: none;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
     <div id="notification-template" class="notification" style="display: none;">
         <div id="notification-show" class="notification show" style="display: none;"></div>
@@ -1128,32 +1190,41 @@
         saveState();
     }
 
-    function resetFontSettings() {
-        document.getElementById("element-font-size").value = defaultFontSizes.element;
-        document.getElementById("index-font-size").value = defaultFontSizes.index;
-        document.getElementById("element-font-color").value = defaultFontColors.element;
-        document.getElementById("index-font-color").value = defaultFontColors.index;
-        changeFontSize();
-        updateFontColors();
-        showNotification("Font settings reset to default.", "success");
+    async function resetFontSettings() {
+        const confirm = await customConfirm("Are you sure you want to reset the font settings to default?");
+        if (confirm) {
+            document.getElementById("element-font-size").value = defaultFontSizes.element;
+            document.getElementById("index-font-size").value = defaultFontSizes.index;
+            document.getElementById("element-font-color").value = defaultFontColors.element;
+            document.getElementById("index-font-color").value = defaultFontColors.index;
+            changeFontSize();
+            updateFontColors();
+            showNotification("Font settings reset to default.", "success");
+        }
     }
 
-    function resetArraySettings() {
-        document.getElementById("base-color").value = defaultColors.base;
-        document.getElementById("highlight1-color").value = defaultColors.highlight1;
-        document.getElementById("highlight2-color").value = defaultColors.highlight2;
-        document.getElementById("highlight3-color").value = defaultColors.highlight3;
-        document.getElementById("background-color").value = defaultColors.backgroundColor;
-        showNotification("Array colors reset to default.", "success");
+    async function resetArraySettings() {
+        const confirm = await customConfirm("Are you sure you want to reset the array colors to default?");
+        if (confirm) {
+            document.getElementById("base-color").value = defaultColors.base;
+            document.getElementById("highlight1-color").value = defaultColors.highlight1;
+            document.getElementById("highlight2-color").value = defaultColors.highlight2;
+            document.getElementById("highlight3-color").value = defaultColors.highlight3;
+            document.getElementById("background-color").value = defaultColors.backgroundColor;
+            showNotification("Array colors reset to default.", "success");
+        }
     }
 
-    function resetArrowSettings() {
-        document.getElementById("arrow-color").value = defaultArrowColor;
-        arrowColor = defaultArrowColor;
-        updateColors();
-        drawArrays();
-        saveState();
-        showNotification("Arrow color reset to default.", "success");
+    async function resetArrowSettings() {
+        const confirm = await customConfirm("Are you sure you want to reset the arrow color to default?");
+        if (confirm) {
+            document.getElementById("arrow-color").value = defaultArrowColor;
+            arrowColor = defaultArrowColor;
+            updateColors();
+            drawArrays();
+            saveState();
+            showNotification("Arrow color reset to default.", "success");
+        }
     }
 
     function removeArrowLabels() {
@@ -1223,6 +1294,50 @@
         img.src = url;
 
         showNotification("Image exported successfully.", "success");
+    }
+
+    function customConfirm(message) {
+        return customModal(message, true);
+    }
+
+    function customModal(message, isConfirm = false) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-modal');
+            const messageElement = document.getElementById('custom-modal-message');
+            const okButton = document.getElementById('custom-modal-ok');
+            const cancelButton = document.getElementById('custom-modal-cancel');
+
+            messageElement.textContent = message;
+            modal.style.display = 'block';
+
+            if (isConfirm) {
+                cancelButton.style.display = 'inline-block';
+                okButton.textContent = 'Yes';
+                cancelButton.textContent = 'No';
+            } else {
+                cancelButton.style.display = 'none';
+                okButton.textContent = 'OK';
+            }
+
+            okButton.focus();
+
+            okButton.onclick = function () {
+                modal.style.display = 'none';
+                resolve(true);
+            }
+
+            cancelButton.onclick = function () {
+                modal.style.display = 'none';
+                resolve(false);
+            }
+
+            window.onclick = function (event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    resolve(false);
+                }
+            }
+        });
     }
 
     function showNotification(message, type = 'info', duration = 3000) {
@@ -1365,43 +1480,45 @@
         localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
     }
 
-    // Reset to default state
-    function resetToDefault() {
-        arrayStates = [{
-            elements: [1, 2, 3, 4, 5],
-            highlights: new Map(),
-            isHidden: false,
-            arrowDownLabel: "",
-            arrowUpLabel: ""
-        }];
-        arrayNames = ["Array 1"];
-        colors = {...defaultColors};
-        fontColors = {...defaultFontColors};
-        elementWidth = 80;
-        document.getElementById("base-color").value = defaultColors.base;
-        document.getElementById("highlight1-color").value = defaultColors.highlight1;
-        document.getElementById("highlight2-color").value = defaultColors.highlight2;
-        document.getElementById("highlight3-color").value = defaultColors.highlight3;
-        document.getElementById("background-color").value = defaultColors.backgroundColor;
-        document.getElementById("array-container").style.backgroundColor = defaultColors.backgroundColor;
-        document.getElementById("element-font-color").value = defaultFontColors.element;
-        document.getElementById("index-font-color").value = defaultFontColors.index;
-        document.getElementById("element-font-size").value = defaultFontSizes.element;
-        document.getElementById("index-font-size").value = defaultFontSizes.index;
-        document.getElementById("show-indexes").checked = true;
-        document.getElementById("show-names").checked = true;
-        document.getElementById("show-down-arrows").checked = false;
-        document.getElementById("show-up-arrows").checked = false;
-        document.getElementById("arrow-color").value = defaultArrowColor;
-        document.getElementById("show-top-arrows").checked = false;
-        document.getElementById("show-bottom-arrows").checked = false;
-        document.getElementById("scale-factor").value = 2;
-        arrowColor = defaultArrowColor;
-        topArrowLabels = {up: "", down: ""};
-        bottomArrowLabels = {up: "", down: ""};
-        updateArrayList();
-        drawArrays();
-        showNotification("Settings reset to default.", "success");
+    async function resetToDefault() {
+        const confirmed = await customConfirm("Are you sure you want to reset to default settings?");
+        if (confirmed) {
+            arrayStates = [{
+                elements: [1, 2, 3, 4, 5],
+                highlights: new Map(),
+                isHidden: false,
+                arrowDownLabel: "",
+                arrowUpLabel: ""
+            }];
+            arrayNames = ["Array 1"];
+            colors = {...defaultColors};
+            fontColors = {...defaultFontColors};
+            elementWidth = 80;
+            document.getElementById("base-color").value = defaultColors.base;
+            document.getElementById("highlight1-color").value = defaultColors.highlight1;
+            document.getElementById("highlight2-color").value = defaultColors.highlight2;
+            document.getElementById("highlight3-color").value = defaultColors.highlight3;
+            document.getElementById("background-color").value = defaultColors.backgroundColor;
+            document.getElementById("array-container").style.backgroundColor = defaultColors.backgroundColor;
+            document.getElementById("element-font-color").value = defaultFontColors.element;
+            document.getElementById("index-font-color").value = defaultFontColors.index;
+            document.getElementById("element-font-size").value = defaultFontSizes.element;
+            document.getElementById("index-font-size").value = defaultFontSizes.index;
+            document.getElementById("show-indexes").checked = true;
+            document.getElementById("show-names").checked = true;
+            document.getElementById("show-down-arrows").checked = false;
+            document.getElementById("show-up-arrows").checked = false;
+            document.getElementById("arrow-color").value = defaultArrowColor;
+            document.getElementById("show-top-arrows").checked = false;
+            document.getElementById("show-bottom-arrows").checked = false;
+            document.getElementById("scale-factor").value = 2;
+            arrowColor = defaultArrowColor;
+            topArrowLabels = {up: "", down: ""};
+            bottomArrowLabels = {up: "", down: ""};
+            updateArrayList();
+            drawArrays();
+            showNotification("Settings reset to default.", "success");
+        }
     }
 </script>
 <div id="element-menu">
