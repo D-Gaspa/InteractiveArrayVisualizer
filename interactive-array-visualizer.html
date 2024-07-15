@@ -199,6 +199,7 @@
             border-radius: 4px;
             padding: 10px;
             width: 160px;
+            z-index: 1000;
         }
 
         #element-menu input,
@@ -371,6 +372,7 @@
         <div class="section-title">State Management</div>
         <button id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
     </div>
+    <div id="menu-wrapper" style="position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;"></div>
 </div>
 
 <script>
@@ -962,19 +964,42 @@
 
     function showElementMenu(event, arrayIndex, elementIndex, rect) {
         const menu = document.getElementById('element-menu');
+        const wrapper = document.getElementById('menu-wrapper');
+        wrapper.style.height = document.documentElement.scrollHeight + 'px';
+        wrapper.appendChild(menu);
         menu.style.display = 'block';
+        menu.style.pointerEvents = 'auto';
 
-        // Get the menu's width after it's displayed
         const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
 
-        // Calculate the left position to center the menu
-        const leftPosition = rect.left + (rect.width - menuWidth) / 2;
+        // Calculate position relative to the page
+        let left = rect.left + (rect.width / 2) - (menuWidth / 2);
+        let top = event.pageY + 10; // 10px gap below the cursor
 
-        // Ensure the menu doesn't go off-screen to the left
-        const adjustedLeftPosition = Math.max(0, leftPosition);
+        // Adjust horizontal position if necessary
+        if (left < 0) {
+            left = 0;
+        } else if (left + menuWidth > viewportWidth) {
+            left = viewportWidth - menuWidth;
+        }
 
-        menu.style.left = `${adjustedLeftPosition}px`;
-        menu.style.top = `${rect.bottom + 5}px`; // 5px gap between element and menu
+        // Adjust vertical position if necessary
+        if (top + menuHeight > window.scrollY + viewportHeight) {
+            top = event.pageY - menuHeight - 10; // 10px gap above the cursor
+        }
+
+        // Ensure the menu is not positioned above the top of the page
+        if (top < 0) {
+            top = 0;
+        }
+
+        // Set position absolute relative to the wrapper (which is relative to the page)
+        menu.style.position = 'absolute';
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
 
         currentArrayIndex = arrayIndex;
         currentElementIndex = elementIndex;
@@ -984,21 +1009,6 @@
         document.getElementById('highlight1-button').style.backgroundColor = colors.highlight1;
         document.getElementById('highlight2-button').style.backgroundColor = colors.highlight2;
         document.getElementById('highlight3-button').style.backgroundColor = colors.highlight3;
-
-        adjustMenuPosition(menu);
-    }
-
-    function adjustMenuPosition(menu) {
-        const rect = menu.getBoundingClientRect();
-        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-        if (rect.right > viewportWidth) {
-            menu.style.left = `${viewportWidth - rect.width}px`;
-        }
-        if (rect.bottom > viewportHeight) {
-            menu.style.top = `${parseInt(menu.style.top) - rect.height - ELEMENT_HEIGHT}px`;
-        }
     }
 
     function hideElementMenu() {
@@ -1155,10 +1165,10 @@
     // Update the event listener for the "Show Indexes" checkbox
     document.getElementById("show-indexes").addEventListener("change", drawArrays);
 
-    // Add an event listener to hide the menu when clicking outside
+    // Event listener to hide the menu when clicking outside
     document.addEventListener('click', function (event) {
         const menu = document.getElementById('element-menu');
-        if (!menu.contains(event.target) && !event.target.classList.contains('array-element')) {
+        if (!menu.contains(event.target) && event.target.id !== 'edit-element-input') {
             hideElementMenu();
         }
     });
