@@ -247,15 +247,52 @@
             transform: scale(1.05);
         }
 
-        #remove-button-color {
+        .delete-btn {
             background-color: #ff4444;
-            color: white;
-            transition: all 0.3s ease;
         }
 
-        #remove-button-color:hover {
+        .delete-btn:hover {
             background-color: #cc0000;
             transform: scale(1.05);
+        }
+
+        .reset-btn {
+            background-color: #0a6aa1;
+        }
+
+        .reset-btn:hover {
+            background-color: #0a4d73;
+            transform: scale(1.05);
+        }
+
+        .notification {
+            background-color: #333333;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 10px;
+            max-width: 300px;
+            opacity: 0;
+            padding: 15px;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left-color: #28a745;
+        }
+
+        .notification.error {
+            border-left-color: #dc3545;
+        }
+
+        .notification.warning {
+            border-left-color: #ffc107;
         }
     </style>
 </head>
@@ -356,13 +393,6 @@
     </div>
     <div class="divisor"></div>
     <div class="control-section">
-        <div class="section-title">Reset Settings</div>
-        <button onclick="resetArraySettings()">Reset Array Settings</button>
-        <button onclick="resetFontSettings()">Reset Font Settings</button>
-        <button onclick="resetArrowSettings()">Reset Arrow Settings</button>
-    </div>
-    <div class="divisor"></div>
-    <div class="control-section">
         <div class="section-title">Export</div>
         <label for="scale-factor">Scale Factor:</label>
         <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
@@ -378,10 +408,24 @@
     </div>
     <div class="divisor"></div>
     <div class="control-section">
+        <div class="section-title">Reset Settings</div>
+        <button class="reset-btn" onclick="resetArraySettings()">Reset Array Settings</button>
+        <button class="reset-btn" onclick="resetFontSettings()">Reset Font Settings</button>
+        <button class="reset-btn" onclick="resetArrowSettings()">Reset Arrow Settings</button>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
         <div class="section-title">State Management</div>
-        <button id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
+        <button class="delete-btn" id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
     </div>
     <div id="menu-wrapper" style="position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;"></div>
+    <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
+    <div id="notification-template" class="notification" style="display: none;">
+        <div id="notification-show" class="notification show" style="display: none;"></div>
+        <div id="notification-success" class="notification success" style="display: none;"></div>
+        <div id="notification-error" class="notification error" style="display: none;"></div>
+        <div id="notification-warning" class="notification warning" style="display: none;"></div>
+    </div>
 </div>
 
 <script>
@@ -838,6 +882,7 @@
         updateArrayList();
         drawArrays();
         document.getElementById("array-input").value = "";
+        showNotification("Array added successfully.", "success");
     }
 
     function updateArrayList() {
@@ -857,7 +902,7 @@
                         value="${state.elements.map(String).join(", ")}" onchange="editArray(${index})">
                         <button class="hide-show-button" onclick="hideOrShowArray(${index})">${state.isHidden ? 'Show' : 'Hide'}</button>
                         <button onclick="duplicateArray(${index})">Duplicate</button>
-                        <button id="remove-button-color" onclick="removeArray(${index})">Remove</button>
+                        <button class="delete-btn" onclick="removeArray(${index})">Remove</button>
                     </div>
                 `;
             arrayList.appendChild(arrayItem);
@@ -915,6 +960,7 @@
         updateArrayList();
         drawArrays();
         saveState();
+        showNotification(`${arrayNames[index]} ${arrayStates[index].isHidden ? 'hidden' : 'shown'} successfully.`, "success");
     }
 
     function duplicateArray(index) {
@@ -926,6 +972,7 @@
         arrayNames.push(`${arrayNames[index]}`);
         updateArrayList();
         drawArrays();
+        showNotification(`${arrayNames[index]} duplicated successfully.`, "success");
     }
 
     function removeArray(index) {
@@ -934,8 +981,9 @@
             arrayNames.splice(index, 1);
             updateArrayList();
             drawArrays();
+            showNotification(`Array removed successfully.`, "success");
         } else {
-            alert("Cannot remove the last array. At least one array must remain.");
+            showNotification("Cannot remove the last array. At least one array must remain.", "error");
         }
         saveState();
     }
@@ -1087,6 +1135,7 @@
         document.getElementById("index-font-color").value = defaultFontColors.index;
         changeFontSize();
         updateFontColors();
+        showNotification("Font settings reset to default.", "success");
     }
 
     function resetArraySettings() {
@@ -1095,6 +1144,7 @@
         document.getElementById("highlight2-color").value = defaultColors.highlight2;
         document.getElementById("highlight3-color").value = defaultColors.highlight3;
         document.getElementById("background-color").value = defaultColors.backgroundColor;
+        showNotification("Array colors reset to default.", "success");
     }
 
     function resetArrowSettings() {
@@ -1103,6 +1153,7 @@
         updateColors();
         drawArrays();
         saveState();
+        showNotification("Arrow color reset to default.", "success");
     }
 
     function removeArrowLabels() {
@@ -1112,6 +1163,7 @@
         });
         drawArrays();
         saveState();
+        showNotification("Arrow labels removed successfully.", "success");
     }
 
     function changeBackgroundColor() {
@@ -1169,6 +1221,33 @@
             document.body.removeChild(downloadLink);
         };
         img.src = url;
+
+        showNotification("Image exported successfully.", "success");
+    }
+
+    function showNotification(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('notification-container');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+
+        container.appendChild(notification);
+
+        // Trigger reflow to enable transition
+        notification.offsetHeight;
+
+        // Add 'show' class to fade in
+        notification.classList.add('show');
+
+        setTimeout(() => {
+            // Remove 'show' class to fade out
+            notification.classList.remove('show');
+
+            // Remove the notification from the DOM after fade out
+            setTimeout(() => {
+                container.removeChild(notification);
+            }, 300);
+        }, duration);
     }
 
     // Update the event listener for the "Show Indexes" checkbox
@@ -1322,6 +1401,7 @@
         bottomArrowLabels = {up: "", down: ""};
         updateArrayList();
         drawArrays();
+        showNotification("Settings reset to default.", "success");
     }
 </script>
 <div id="element-menu">
