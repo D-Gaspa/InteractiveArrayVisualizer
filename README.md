@@ -1,7 +1,7 @@
-# Interactive Visualizers
+# Array Visualizer
 
-This repository contains a collection of interactive visualizers built with HTML, CSS, and JavaScript.
-These tools are designed to help developers and students visualize various data structures.
+This repository contains an interactive array visualizer built with HTML, CSS, and JavaScript.
+This tool is designed to help developers and students visualize array data structures.
 
 ## Array Visualizer Features
 
@@ -9,11 +9,12 @@ These tools are designed to help developers and students visualize various data 
 - Dynamic array management (add, edit, duplicate, remove arrays)
 - Custom color personalization for array elements, background, and arrows
 - Multiple highlight options for array elements
+- PNG export functionality with a customizable background
 - Index and array name display options
 - Adjustable font sizes and colors for elements, indices, and array names
 - Optional arrows between arrays with customizable labels
 - State management with local storage
-- PNG export functionality with a customizable background
+- Non-intrusive notifications for user feedback that automatically disappear
 - Responsive design with dark mode interface
 
 ## Getting Started
@@ -27,8 +28,6 @@ These tools are designed to help developers and students visualize various data 
 - Open the HTML file in your web browser.
 
 ## Usage
-
-### Array Visualizer
 
 1. Enter array values in the input field and click "Add Array" to create a new array.
 2. Manage multiple arrays:
